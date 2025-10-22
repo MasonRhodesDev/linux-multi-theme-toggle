@@ -13,6 +13,8 @@ path = "src/main.rs"
 lmtt-core = { path = "../lmtt-core" }
 lmtt-platforms = { path = "../lmtt-platforms" }
 lmtt-modules = { path = "../lmtt-modules" }
+lmtt-config-tui = { path = "../lmtt-config-tui" }
+schema-tui = { path = "../../schema-tui" }
 tokio = { workspace = true }
 async-trait = { workspace = true }
 clap = { workspace = true }
@@ -25,3 +27,5 @@ zbus = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 nix = { workspace = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }

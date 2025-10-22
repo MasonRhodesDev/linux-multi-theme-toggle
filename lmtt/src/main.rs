@@ -1,4 +1,5 @@
 mod matugen;
+mod tui;
 
 use clap::{Parser, Subcommand};
 use lmtt_core::{Config, ThemeMode};
@@ -7,7 +8,7 @@ use anyhow::Result;
 
 #[derive(Parser)]
 #[command(name = "lmtt")]
-#[command(about = "Linux Matugen Theme Toggle - High-performance theme switching", long_about = None)]
+#[command(about = "Linux Multi-Theme Toggle - High-performance theme switching", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -52,13 +53,16 @@ enum Commands {
     
     /// List installed modules
     List {
-        /// Show all modules (including disabled)
-        #[arg(short, long)]
+        /// Show all modules (including not installed)
+        #[arg(long)]
         all: bool,
     },
     
     /// Initialize config file
     Init,
+    
+    /// Interactive configuration manager
+    Config,
 }
 
 #[tokio::main]
@@ -95,6 +99,10 @@ async fn main() -> Result<()> {
         
         Commands::Init => {
             cmd_init().await?;
+        }
+        
+        Commands::Config => {
+            return tui::run_tui();
         }
     }
     

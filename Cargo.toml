@@ -4,7 +4,7 @@ members = [
     "lmtt",
     "lmtt-core",
     "lmtt-platforms",
-    "lmtt-modules",
+    "lmtt-modules", "lmtt-config-tui",
 ]
 
 [workspace.package]
@@ -12,7 +12,8 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Mason"]
 license = "MIT"
-repository = "https://github.com/yourusername/linux-matugen-theme-toggle"
+repository = "https://github.com/yourusername/lmtt"
+description = "Linux Multi-Theme Toggle - Fast async theme switching for Hyprland/Wayland"
 
 [workspace.dependencies]
 # Core dependencies
@@ -43,6 +44,16 @@ palette = "0.7"
 
 # Process management
 nix = { version = "0.29", features = ["signal", "process"] }
+
+# Auto-discovery for modules
+inventory = "0.3"
+
+# Template engine for custom modules
+handlebars = "5.1"
+
+# TUI framework
+ratatui = "0.28"
+crossterm = "0.28"
 
 [profile.release]
 opt-level = 3

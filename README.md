@@ -1,12 +1,12 @@
-# LMTT - Linux Matugen Theme Toggle
+# LMTT - Linux Multi-Theme Toggle
 
-**High-performance, async theme switching for Hyprland/Wayland desktops** using Material You color schemes.
+**High-performance, async theme switching for Hyprland/Wayland desktops** with Material You color schemes.
 
 ## Features
 
 - ⚡ **Blazing Fast**: Async Rust implementation, modules run in parallel
-- 🎨 **Material You**: Generates color schemes from wallpapers using [matugen](https://github.com/InioX/matugen)
-- 🔌 **Modular**: Supports 15+ applications (Waybar, Hyprland, VSCode, Wezterm, etc.)
+- 🎨 **Flexible Theming**: Material You colors from wallpapers (via [matugen](https://github.com/InioX/matugen)), custom JSON colors, or built-in fallback themes
+- 🔌 **Modular**: Supports 14+ applications (Waybar, Hyprland, VSCode, Wezterm, SwayNC, etc.)
 - 🎯 **Auto-Detection**: Only applies themes to installed applications
 - 🔧 **Easy Setup**: Auto-injects config includes with `lmtt setup`
 - 🧹 **Clean Uninstall**: `lmtt cleanup` removes all injected config
@@ -19,14 +19,16 @@
 ### Requirements
 
 - Rust 1.70+ (`rustup` recommended)
-- [matugen](https://github.com/InioX/matugen) for color generation
+- [matugen](https://github.com/InioX/matugen) - **Optional**, for wallpaper-based color generation
+  - If not installed, LMTT uses built-in Material You fallback themes
+  - Can also use custom JSON color files
 - GTK 3/4 applications (optional, for `gsettings` integration)
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/yourusername/linux-matugen-theme-toggle.git
-cd linux-matugen-theme-toggle
+git clone https://github.com/yourusername/lmtt.git
+cd lmtt
 make install
 ```
 
@@ -64,6 +66,36 @@ sudo cp target/release/lmtt /usr/local/bin/
 
 ## Usage
 
+### Configuration Manager (Interactive TUI)
+
+Launch the interactive configuration manager:
+
+```bash
+lmtt config
+```
+
+The TUI provides 6 tabs matching the config file structure:
+- **General** - wallpaper, default_mode, use_matugen, custom colors
+- **Notifications** - enabled, timeout, show_module_progress  
+- **Performance** - timeout, slow_module_threshold
+- **Modules** - enable/disable individual modules
+- **Cache** - enabled, cache directory
+- **Logging** - level, log_file, max_log_size
+
+**Module Status:**
+- ✓ **Enabled** (green) - currently active
+- ✗ **Disabled** (red) - installed but disabled
+- ⊘ **Not Installed** (gray) - not on system
+
+**Controls:**
+- `Tab`/`←→`/`h/l` - Switch between sections
+- `↑↓` or `j/k` - Navigate items
+- `Space/Enter` - Toggle boolean values
+- `e` - Open full config in `$EDITOR`
+- `q/Esc` - Quit
+
+Changes are saved immediately to `~/.config/lmtt/config.toml`.
+
 ### Commands
 
 ```bash
@@ -72,6 +104,9 @@ lmtt switch                   # Toggle between light/dark
 lmtt switch dark              # Switch to dark mode
 lmtt switch light             # Switch to light mode
 lmtt switch --no-notify       # Toggle without notifications
+
+# Interactive configuration
+lmtt config                   # TUI for managing all settings
 
 # Setup mode (configure app configs)
 lmtt setup
@@ -97,6 +132,9 @@ Config file: `~/.config/lmtt/config.toml`
 wallpaper = "~/Pictures/forrest.png"
 default_mode = "dark"
 scheme_type = "scheme-expressive"
+use_matugen = true  # Set to false to use fallback/custom colors
+custom_light_colors = "~/.config/lmtt/colors-light.json"
+custom_dark_colors = "~/.config/lmtt/colors-dark.json"
 
 [notifications]
 enabled = true
@@ -113,8 +151,72 @@ enabled = true
 - **Modules enabled by default**: Apps are auto-detected and run if installed
 - **Disable modules**: Set `enabled = false` to skip specific apps
 - **Custom commands**: Add `command = "/path/to/script.sh"` for custom modules
+- **Flexible color sources**:
+  - **matugen** (default): Generate colors from wallpaper
+  - **Custom JSON**: Provide your own `colors-light.json` and `colors-dark.json`
+  - **Built-in fallback**: Material You themes if matugen not available
+
+### Custom Color Schemes
+
+Create your own color schemes by placing JSON files at `~/.config/lmtt/colors-light.json` and `~/.config/lmtt/colors-dark.json`:
+
+```json
+{
+  "surface": "#fbf8ff",
+  "on_surface": "#1a1b23",
+  "primary": "#3a6a33",
+  "on_primary": "#ffffff",
+  "secondary": "#7d525f",
+  "error": "#ba1a1a",
+  "outline": "#74767f",
+  "surface_variant": "#e0e2ec",
+  "on_surface_variant": "#44464f"
+}
+```
+
+Set `use_matugen = false` in config to use custom colors instead of wallpaper-based generation.
+
+## Custom Modules
+
+LMTT supports user-defined custom modules in `~/.config/lmtt/modules/` - no recompilation needed!
+
+### Two Module Types
+
+**1. Declarative (Template-based)** - For simple config files:
+```toml
+# ~/.config/lmtt/modules/alacritty.toml
+name = "alacritty"
+binary = "alacritty"
+
+[output]
+path = "~/.config/alacritty/lmtt-colors.yml"
+format = "yaml"
+
+[template]
+content = """
+colors:
+  primary:
+    background: '{{surface}}'
+    foreground: '{{on_surface}}'
+"""
+```
+
+**2. Script-based** - For complex logic:
+```toml
+# ~/.config/lmtt/modules/spotify.toml
+name = "spotify"
+binary = "spotify"
+
+[script]
+path = "~/.config/lmtt/scripts/spotify.sh"
+timeout = 10000
+```
+
+Custom modules are automatically discovered and loaded. See `examples/modules/` for working examples (Alacritty, Kitty, Discord, Spotify) and `examples/README-modules.md` for full documentation.
 
 ## Supported Applications
+
+### Built-in Modules (Rust)
 
 | Module | Config File | Auto-Setup |
 |--------|-------------|------------|

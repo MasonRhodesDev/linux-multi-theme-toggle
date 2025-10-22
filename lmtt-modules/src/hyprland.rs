@@ -2,6 +2,8 @@ use crate::{ThemeModule, ConfigFileInfo};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result};
 
+crate::register_module!(HyprlandModule);
+
 pub struct HyprlandModule;
 
 impl HyprlandModule {
