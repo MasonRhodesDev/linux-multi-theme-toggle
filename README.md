@@ -57,7 +57,9 @@ sudo cp target/release/lmtt /usr/local/bin/
 
 4. **Switch theme**:
    ```bash
-   lmtt switch dark    # or 'light'
+   lmtt switch         # Toggle between light/dark
+   lmtt switch dark    # Switch to dark mode
+   lmtt switch light   # Switch to light mode
    ```
 
 ## Usage
@@ -66,9 +68,10 @@ sudo cp target/release/lmtt /usr/local/bin/
 
 ```bash
 # Switch theme
-lmtt switch dark
-lmtt switch light
-lmtt switch dark --no-notify  # Disable notifications
+lmtt switch                   # Toggle between light/dark
+lmtt switch dark              # Switch to dark mode
+lmtt switch light             # Switch to light mode
+lmtt switch --no-notify       # Toggle without notifications
 
 # Setup mode (configure app configs)
 lmtt setup

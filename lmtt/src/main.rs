@@ -19,10 +19,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Switch to light or dark theme
+    /// Switch to light or dark theme, or toggle between them
     Switch {
-        /// Theme mode (light or dark)
-        mode: ThemeMode,
+        /// Theme mode (light or dark). If omitted, toggles between current theme.
+        mode: Option<ThemeMode>,
         
         /// Disable notifications
         #[arg(long)]
@@ -101,9 +101,29 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn cmd_switch(mode: ThemeMode, _no_notify: bool) -> Result<()> {
+async fn cmd_switch(mode: Option<ThemeMode>, _no_notify: bool) -> Result<()> {
     let config = Config::load()?;
     let registry = ModuleRegistry::new();
+    
+    // Determine target mode (toggle if not specified)
+    let mode = if let Some(m) = mode {
+        m
+    } else {
+        // Toggle: get current theme and switch to opposite
+        let cache_dir = std::path::PathBuf::from(
+            config.cache.dir.replace("~", &dirs::home_dir().unwrap().display().to_string())
+        );
+        let cache = lmtt_core::cache::Cache::new(cache_dir)?;
+        let current = cache.get_theme_state().await?;
+        
+        let toggled = match current.as_str() {
+            "light" => ThemeMode::Dark,
+            _ => ThemeMode::Light,
+        };
+        
+        println!("Toggling from {} to {} mode...", current, toggled);
+        toggled
+    };
     
     println!("Switching to {} mode...", mode);
     
@@ -137,6 +157,13 @@ async fn cmd_switch(mode: ThemeMode, _no_notify: bool) -> Result<()> {
     println!("\n{} successful, {} failed", successes, failures);
     
     if failures == 0 {
+        // Save theme state to cache
+        let cache_dir = std::path::PathBuf::from(
+            config.cache.dir.replace("~", &dirs::home_dir().unwrap().display().to_string())
+        );
+        let cache = lmtt_core::cache::Cache::new(cache_dir)?;
+        cache.set_theme_state(&mode.to_string()).await?;
+        
         println!("Theme switched to {} mode!", mode);
     }
     
