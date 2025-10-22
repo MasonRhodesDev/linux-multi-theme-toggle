@@ -1,4 +1,4 @@
-use crate::{ThemeModule, ModuleRegistry};
+use crate::ModuleRegistry;
 use lmtt_core::{Config, Result};
 use std::io::{self, Write};
 
@@ -12,7 +12,7 @@ impl SetupManager {
     }
     
     /// Run setup mode - check all installed apps and prompt for config injection
-    pub async fn run(&self, config: &Config) -> Result<()> {
+    pub async fn run(&self, _config: &Config) -> Result<()> {
         println!("🔧 LMTT Setup Mode");
         println!("================\n");
         
