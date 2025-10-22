@@ -1,0 +1,107 @@
+# LMTT (Linux Matugen Theme Toggle) Configuration
+# Save to ~/.config/lmtt/config.toml
+
+[general]
+# Wallpaper path for color generation
+wallpaper = "~/Pictures/forrest.png"
+
+# Default theme mode if none specified
+default_mode = "dark"
+
+# Color scheme type (passed to matugen)
+# Options: scheme-content, scheme-expressive, scheme-fidelity, scheme-fruit-salad, scheme-monochrome, scheme-neutral, scheme-rainbow, scheme-tonal-spot, scheme-vibrant
+scheme_type = "scheme-expressive"
+
+[notifications]
+# Enable desktop notifications
+enabled = true
+
+# Notification timeout in milliseconds (0 = default, -1 = never expire)
+timeout = 5000
+
+# Show detailed module progress (slower, but more informative)
+show_module_progress = false
+
+[performance]
+# Maximum time to wait for all modules (seconds)
+timeout = 10
+
+# Performance warning threshold (milliseconds)
+slow_module_threshold = 250
+
+[modules]
+# Enable/disable specific modules
+# Modules are automatically skipped if their app is not installed
+
+[modules.gtk]
+enabled = true
+
+[modules.xdg]
+enabled = true
+
+[modules.qt]
+enabled = true
+
+[modules.hyprland]
+enabled = true
+
+[modules.waybar]
+enabled = true
+# Waybar doesn't need restart with reload_style_on_change: true
+restart = false
+
+[modules.swaync]
+enabled = true
+restart = true
+
+[modules.wezterm]
+enabled = true
+
+[modules.tmux]
+enabled = true
+
+[modules.nvim]
+enabled = true
+
+[modules.vscode]
+enabled = true
+
+[modules.wofi]
+enabled = true
+
+[modules.fish]
+enabled = true
+
+[modules.electron]
+enabled = true
+
+# Add custom modules here
+# [modules.my_custom_app]
+# enabled = true
+# command = "/path/to/custom/script.sh"
+
+[colors]
+# Override specific Material You colors (optional)
+# Leave empty to use matugen-generated colors
+
+# Example overrides:
+# primary = "#9fd491"
+# secondary = "#edb8cd"
+# tertiary = "#bbc3fa"
+
+[cache]
+# Enable wallpaper hash caching (skip regeneration if wallpaper unchanged)
+enabled = true
+
+# Cache directory
+dir = "~/.cache/lmtt"
+
+[logging]
+# Log level: error, warn, info, debug, trace
+level = "info"
+
+# Log to file
+log_file = "~/.cache/lmtt/lmtt.log"
+
+# Log file rotation (MB)
+max_log_size = 10

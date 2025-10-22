@@ -1,0 +1,18 @@
+[package]
+name = "lmtt-modules"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+lmtt-core = { path = "../lmtt-core" }
+lmtt-platforms = { path = "../lmtt-platforms" }
+async-trait = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+which = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+dirs = { workspace = true }
+tracing = { workspace = true }
