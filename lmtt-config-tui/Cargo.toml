@@ -1,0 +1,20 @@
+[package]
+name = "lmtt-config-tui"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description.workspace = true
+
+[[bin]]
+name = "lmtt-config"
+path = "src/main.rs"
+
+[dependencies]
+schema-tui = { path = "../../schema-tui" }
+lmtt-core = { path = "../lmtt-core" }
+
+anyhow = "1.0"
+dirs = "5.0"
+tokio = { version = "1", features = ["full"] }

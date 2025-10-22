@@ -1,0 +1,210 @@
+{
+  "version": "1.0",
+  "title": "LMTT Configuration",
+  "description": "Linux Matugen Theme Toggle settings",
+  "sections": [
+    {
+      "id": "general",
+      "title": "General Settings",
+      "icon": "⚙️",
+      "fields": [
+        {
+          "id": "wallpaper",
+          "label": "Wallpaper Path",
+          "description": "Path to wallpaper image for theme color generation (supports ~ and $VAR)",
+          "type": "path",
+          "file_type": "image",
+          "default": "~/Pictures/forrest.png",
+          "env_expand": true,
+          "ui_widget": "text_input"
+        },
+        {
+          "id": "default_mode",
+          "label": "Default Theme Mode",
+          "description": "Default theme mode on startup: Light or Dark",
+          "type": "enum",
+          "options_source": {
+            "type": "static",
+            "values": ["Light", "Dark"]
+          },
+          "default": "Dark",
+          "ui_widget": "dropdown"
+        },
+        {
+          "id": "scheme_type",
+          "label": "Material Scheme Type",
+          "description": "Material color scheme type for color generation",
+          "type": "enum",
+          "options_source": {
+            "type": "static",
+            "values": [
+              "scheme-content",
+              "scheme-expressive",
+              "scheme-fidelity",
+              "scheme-fruit-salad",
+              "scheme-monochrome",
+              "scheme-neutral",
+              "scheme-rainbow",
+              "scheme-tonal-spot",
+              "scheme-vibrant"
+            ]
+          },
+          "default": "scheme-expressive",
+          "ui_widget": "dropdown"
+        },
+        {
+          "id": "use_matugen",
+          "label": "Use Matugen",
+          "description": "Enable automatic color generation from wallpaper using matugen",
+          "type": "boolean",
+          "default": true,
+          "ui_widget": "toggle"
+        },
+        {
+          "id": "default_light_colors",
+          "label": "Default Light Colors",
+          "description": "Path to fallback color JSON for light mode when matugen disabled (supports ~ and $VAR)",
+          "type": "path",
+          "file_type": "json",
+          "default": "~/.config/lmtt/colors-light.json",
+          "env_expand": true,
+          "ui_widget": "text_input"
+        },
+        {
+          "id": "default_dark_colors",
+          "label": "Default Dark Colors",
+          "description": "Path to fallback color JSON for dark mode when matugen disabled (supports ~ and $VAR)",
+          "type": "path",
+          "file_type": "json",
+          "default": "~/.config/lmtt/colors-dark.json",
+          "env_expand": true,
+          "ui_widget": "text_input"
+        }
+      ]
+    },
+    {
+      "id": "notifications",
+      "title": "Notifications",
+      "icon": "🔔",
+      "fields": [
+        {
+          "id": "enabled",
+          "label": "Enabled",
+          "description": "Show desktop notifications when theme changes",
+          "type": "boolean",
+          "default": true,
+          "ui_widget": "toggle"
+        },
+        {
+          "id": "timeout",
+          "label": "Timeout (ms)",
+          "description": "Notification display duration in milliseconds",
+          "type": "number",
+          "default": 5000,
+          "min": 0,
+          "max": 30000,
+          "ui_widget": "number_input"
+        },
+        {
+          "id": "show_module_progress",
+          "label": "Show Module Progress",
+          "description": "Show individual notification for each module being applied",
+          "type": "boolean",
+          "default": false,
+          "ui_widget": "toggle"
+        }
+      ]
+    },
+    {
+      "id": "performance",
+      "title": "Performance",
+      "icon": "⚡",
+      "fields": [
+        {
+          "id": "timeout",
+          "label": "Timeout (seconds)",
+          "description": "Maximum seconds to wait for all modules to complete",
+          "type": "number",
+          "default": 10,
+          "min": 1,
+          "max": 60,
+          "ui_widget": "number_input"
+        },
+        {
+          "id": "slow_module_threshold",
+          "label": "Slow Module Threshold (ms)",
+          "description": "Log warning if any module takes longer than this (milliseconds)",
+          "type": "number",
+          "default": 250,
+          "min": 0,
+          "max": 10000,
+          "ui_widget": "number_input"
+        }
+      ]
+    },
+    {
+      "id": "cache",
+      "title": "Cache",
+      "icon": "💾",
+      "fields": [
+        {
+          "id": "enabled",
+          "label": "Enabled",
+          "description": "Cache matugen color generation results to speed up repeated theme switches",
+          "type": "boolean",
+          "default": true,
+          "ui_widget": "toggle"
+        },
+        {
+          "id": "dir",
+          "label": "Cache Directory",
+          "description": "Directory to store cached color schemes (supports ~ and $VAR)",
+          "type": "path",
+          "file_type": "any",
+          "default": "~/.cache/lmtt",
+          "env_expand": true,
+          "ui_widget": "text_input"
+        }
+      ]
+    },
+    {
+      "id": "logging",
+      "title": "Logging",
+      "icon": "📝",
+      "fields": [
+        {
+          "id": "level",
+          "label": "Log Level",
+          "description": "Log verbosity level: trace, debug, info, warn, error",
+          "type": "enum",
+          "options_source": {
+            "type": "static",
+            "values": ["trace", "debug", "info", "warn", "error"]
+          },
+          "default": "info",
+          "ui_widget": "dropdown"
+        },
+        {
+          "id": "log_file",
+          "label": "Log File",
+          "description": "Path to log file for debugging (supports ~ and $VAR)",
+          "type": "path",
+          "file_type": "any",
+          "default": "~/.cache/lmtt/lmtt.log",
+          "env_expand": true,
+          "ui_widget": "text_input"
+        },
+        {
+          "id": "max_log_size",
+          "label": "Max Log Size (MB)",
+          "description": "Maximum log file size in megabytes before rotation",
+          "type": "number",
+          "default": 10,
+          "min": 1,
+          "max": 1000,
+          "ui_widget": "number_input"
+        }
+      ]
+    }
+  ]
+}
