@@ -6,7 +6,7 @@ pub mod gtk;
 pub mod hyprland;
 
 use async_trait::async_trait;
-use lmtt_core::{ColorScheme, ThemeMode, Result, Config};
+use lmtt_core::{ColorScheme, Result, Config};
 use std::path::PathBuf;
 
 /// Information about a config file that needs lmtt integration

@@ -1,7 +1,7 @@
 mod matugen;
 
 use clap::{Parser, Subcommand};
-use lmtt_core::{Config, ThemeMode, ColorScheme};
+use lmtt_core::{Config, ThemeMode};
 use lmtt_modules::{ModuleRegistry, SetupManager, CleanupManager};
 use anyhow::Result;
 
