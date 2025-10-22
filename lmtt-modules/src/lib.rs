@@ -1,9 +1,12 @@
 pub mod registry;
 pub mod setup;
 pub mod cleanup;
-pub mod waybar;
 pub mod gtk;
+pub mod xdg;
 pub mod hyprland;
+pub mod waybar;
+pub mod wofi;
+pub mod tmux;
 
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Result, Config};
