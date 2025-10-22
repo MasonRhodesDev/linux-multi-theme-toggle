@@ -1,4 +1,4 @@
-use crate::{ThemeModule, ConfigFileInfo, ModuleRegistry};
+use crate::{ThemeModule, ModuleRegistry};
 use lmtt_core::{Config, Result};
 use std::io::{self, Write};
 
