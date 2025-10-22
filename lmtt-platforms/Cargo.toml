@@ -1,0 +1,15 @@
+[package]
+name = "lmtt-platforms"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+lmtt-core = { path = "../lmtt-core" }
+async-trait = { workspace = true }
+tokio = { workspace = true }
+zbus = { workspace = true }
+anyhow = { workspace = true }
+which = { workspace = true }
+tracing = { workspace = true }
