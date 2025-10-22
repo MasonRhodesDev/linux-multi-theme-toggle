@@ -1,4 +1,4 @@
-use crate::ThemeModule;
+use crate::{ThemeModule, ModuleConstructor};
 use lmtt_core::{ColorScheme, Config, Result};
 use std::sync::Arc;
 use std::time::Instant;
@@ -9,19 +9,26 @@ pub struct ModuleRegistry {
 
 impl ModuleRegistry {
     pub fn new() -> Self {
-        let mut modules: Vec<Arc<dyn ThemeModule>> = vec![
-            // Platform modules (low priority - run first)
-            Arc::new(crate::gtk::GtkModule::new()),      // priority: 10
-            Arc::new(crate::xdg::XdgModule::new()),      // priority: 15
-            
-            // Application modules (priority 100+)
-            Arc::new(crate::hyprland::HyprlandModule::new()),
-            Arc::new(crate::waybar::WaybarModule::new()),
-            Arc::new(crate::wofi::WofiModule::new()),
-            Arc::new(crate::tmux::TmuxModule::new()),
-        ];
+        let mut modules: Vec<Arc<dyn ThemeModule>> = Vec::new();
         
-        // Sort by priority
+        // Auto-discover built-in modules using inventory
+        for constructor in inventory::iter::<ModuleConstructor> {
+            modules.push((constructor.constructor)());
+        }
+        
+        // Load custom modules from ~/.config/lmtt/modules/
+        match crate::custom::load_custom_modules() {
+            Ok(custom_modules) => {
+                for module in custom_modules {
+                    modules.push(Arc::new(module));
+                }
+            }
+            Err(e) => {
+                tracing::warn!("Failed to load custom modules: {}", e);
+            }
+        }
+        
+        // Sort by priority (platform modules first, then apps)
         modules.sort_by_key(|m| m.priority());
         
         Self { modules }

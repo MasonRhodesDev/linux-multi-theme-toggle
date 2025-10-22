@@ -1,16 +1,25 @@
 pub mod registry;
 pub mod setup;
 pub mod cleanup;
+pub mod custom;
 pub mod gtk;
 pub mod xdg;
 pub mod hyprland;
 pub mod waybar;
 pub mod wofi;
 pub mod tmux;
+pub mod swaync;
+pub mod wezterm;
+pub mod vscode;
+pub mod nvim;
+pub mod fish;
+pub mod qt;
+pub mod hyprpanel;
 
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Result, Config};
 use std::path::PathBuf;
+use std::sync::Arc;
 
 /// Information about a config file that needs lmtt integration
 #[derive(Debug, Clone)]
@@ -158,3 +167,22 @@ pub trait ThemeModule: Send + Sync {
 pub use registry::ModuleRegistry;
 pub use setup::SetupManager;
 pub use cleanup::CleanupManager;
+
+/// Constructor function type for module auto-registration
+pub struct ModuleConstructor {
+    pub constructor: fn() -> Arc<dyn ThemeModule>,
+}
+
+inventory::collect!(ModuleConstructor);
+
+/// Macro to auto-register a module
+#[macro_export]
+macro_rules! register_module {
+    ($module:ty) => {
+        inventory::submit! {
+            $crate::ModuleConstructor {
+                constructor: || std::sync::Arc::new(<$module>::new())
+            }
+        }
+    };
+}

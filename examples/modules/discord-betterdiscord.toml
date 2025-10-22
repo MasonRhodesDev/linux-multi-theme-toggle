@@ -1,0 +1,49 @@
+# Discord with BetterDiscord
+# https://betterdiscord.app/
+
+name = "discord"
+description = "Discord with BetterDiscord Material You theme"
+binary = "discord"
+priority = 100
+
+[output]
+path = "~/.config/BetterDiscord/themes/lmtt-material-you.theme.css"
+format = "css"
+
+[template]
+content = """
+/**
+ * @name LMTT Material You
+ * @description Auto-generated Material You theme for Discord
+ * @author LMTT
+ * @version 1.0.0
+ */
+
+:root {
+  --background-primary: {{surface}};
+  --background-secondary: {{surface_container}};
+  --background-tertiary: {{surface_container_high}};
+  --background-accent: {{primary}};
+  --background-floating: {{surface_container_highest}};
+  
+  --text-normal: {{on_surface}};
+  --text-muted: {{on_surface_variant}};
+  --text-link: {{primary}};
+  
+  --interactive-normal: {{on_surface_variant}};
+  --interactive-hover: {{on_surface}};
+  --interactive-active: {{primary}};
+  --interactive-muted: {{outline}};
+  
+  --header-primary: {{on_surface}};
+  --header-secondary: {{on_surface_variant}};
+  
+  --scrollbar-thin-thumb: {{outline}};
+  --scrollbar-thin-track: transparent;
+  --scrollbar-auto-thumb: {{outline}};
+  --scrollbar-auto-track: {{surface_variant}};
+  
+  --brand-experiment: {{primary}};
+  --status-danger: {{error}};
+}
+"""

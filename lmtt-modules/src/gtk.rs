@@ -2,6 +2,8 @@ use crate::{ThemeModule, ConfigFileInfo};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result, ThemeMode};
 
+crate::register_module!(GtkModule);
+
 pub struct GtkModule;
 
 impl GtkModule {

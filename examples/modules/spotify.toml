@@ -1,0 +1,12 @@
+# Spotify with Spicetify
+# https://spicetify.app/
+
+name = "spotify"
+description = "Spotify with Spicetify theming"
+binary = "spotify"
+priority = 100
+
+[script]
+path = "~/.config/lmtt/scripts/spotify-spicetify.sh"
+timeout = 15000
+pass_as_env = false

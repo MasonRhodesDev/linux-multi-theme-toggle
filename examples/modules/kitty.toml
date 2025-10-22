@@ -1,0 +1,57 @@
+# Kitty Terminal Emulator
+# https://sw.kovidgoyal.net/kitty/
+
+name = "kitty"
+description = "Kitty terminal emulator with Material You colors"
+binary = "kitty"
+priority = 100
+
+[output]
+path = "~/.config/kitty/lmtt-colors.conf"
+format = "conf"
+
+[template]
+content = """
+# LMTT Generated Colors - {{mode}} mode
+
+# Background & Foreground
+background {{surface}}
+foreground {{on_surface}}
+
+# Cursor
+cursor {{primary}}
+cursor_text_color {{surface}}
+
+# Selection
+selection_background {{primary_container}}
+selection_foreground {{on_primary_container}}
+
+# Normal colors
+color0  {{outline}}
+color1  {{error}}
+color2  {{primary}}
+color3  {{secondary}}
+color4  {{tertiary}}
+color5  {{secondary}}
+color6  {{tertiary}}
+color7  {{on_surface}}
+
+# Bright colors
+color8  {{outline_variant}}
+color9  {{error}}
+color10 {{primary}}
+color11 {{secondary}}
+color12 {{tertiary}}
+color13 {{secondary}}
+color14 {{tertiary}}
+color15 {{on_surface}}
+"""
+
+[reload]
+command = "killall -SIGUSR1 kitty"
+timeout = 5000
+
+[setup]
+config_file = "~/.config/kitty/kitty.conf"
+include_line = "include lmtt-colors.conf"
+description = "Include LMTT colors in Kitty config"
