@@ -16,11 +16,11 @@
           "options_source": {
             "type": "static",
             "values": [
-              "Light",
-              "Dark"
+              "light",
+              "dark"
             ]
           },
-          "default": "Dark",
+          "default": "dark",
           "ui_widget": "dropdown",
           "subsection": "Basic"
         },

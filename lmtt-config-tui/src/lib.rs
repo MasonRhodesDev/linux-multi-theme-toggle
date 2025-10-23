@@ -47,5 +47,37 @@ pub fn run_config_tui() -> Result<()> {
     
     tui.run()?;
     
+    // After exiting TUI, apply the current theme from config
+    apply_theme_on_exit()?;
+    
+    Ok(())
+}
+
+fn apply_theme_on_exit() -> Result<()> {
+    // Load the config to get the current default_mode
+    let config = lmtt_core::Config::load()?;
+    let mode = config.general.default_mode;
+    
+    println!("\nApplying {} theme with updated configuration...", mode);
+    
+    // Call lmtt switch command as subprocess
+    let output = std::process::Command::new("lmtt")
+        .arg("switch")
+        .arg(mode.to_string().to_lowercase())
+        .output()?;
+    
+    // Print output
+    if !output.stdout.is_empty() {
+        print!("{}", String::from_utf8_lossy(&output.stdout));
+    }
+    
+    if !output.stderr.is_empty() {
+        eprint!("{}", String::from_utf8_lossy(&output.stderr));
+    }
+    
+    if !output.status.success() {
+        anyhow::bail!("Failed to apply theme");
+    }
+    
     Ok(())
 }
