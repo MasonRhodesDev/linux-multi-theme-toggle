@@ -6,18 +6,8 @@
     {
       "id": "general",
       "title": "General Settings",
-      "icon": "⚙️",
+      "icon": "\u2699\ufe0f",
       "fields": [
-        {
-          "id": "wallpaper",
-          "label": "Wallpaper Path",
-          "description": "Path to wallpaper image for theme color generation (supports ~ and $VAR)",
-          "type": "path",
-          "file_type": "image",
-          "default": "~/Pictures/forrest.png",
-          "env_expand": true,
-          "ui_widget": "text_input"
-        },
         {
           "id": "default_mode",
           "label": "Default Theme Mode",
@@ -25,10 +15,34 @@
           "type": "enum",
           "options_source": {
             "type": "static",
-            "values": ["Light", "Dark"]
+            "values": [
+              "Light",
+              "Dark"
+            ]
           },
           "default": "Dark",
-          "ui_widget": "dropdown"
+          "ui_widget": "dropdown",
+          "subsection": "Basic"
+        },
+        {
+          "id": "use_matugen",
+          "label": "Use Matugen",
+          "description": "Enable automatic color generation from wallpaper using matugen",
+          "type": "boolean",
+          "default": true,
+          "ui_widget": "toggle",
+          "subsection": "Basic"
+        },
+        {
+          "id": "wallpaper",
+          "label": "Wallpaper Path",
+          "description": "Path to wallpaper image for theme color generation (supports ~ and $VAR)",
+          "type": "path",
+          "file_type": "image",
+          "default": "",
+          "env_expand": true,
+          "ui_widget": "text_input",
+          "subsection": "Matugen"
         },
         {
           "id": "scheme_type",
@@ -50,15 +64,8 @@
             ]
           },
           "default": "scheme-expressive",
-          "ui_widget": "dropdown"
-        },
-        {
-          "id": "use_matugen",
-          "label": "Use Matugen",
-          "description": "Enable automatic color generation from wallpaper using matugen",
-          "type": "boolean",
-          "default": true,
-          "ui_widget": "toggle"
+          "ui_widget": "dropdown",
+          "subsection": "Matugen"
         },
         {
           "id": "default_light_colors",
@@ -68,7 +75,8 @@
           "file_type": "json",
           "default": "~/.config/lmtt/colors-light.json",
           "env_expand": true,
-          "ui_widget": "text_input"
+          "ui_widget": "text_input",
+          "subsection": "Matugen"
         },
         {
           "id": "default_dark_colors",
@@ -78,32 +86,28 @@
           "file_type": "json",
           "default": "~/.config/lmtt/colors-dark.json",
           "env_expand": true,
-          "ui_widget": "text_input"
-        }
-      ]
-    },
-    {
-      "id": "notifications",
-      "title": "Notifications",
-      "icon": "🔔",
-      "fields": [
+          "ui_widget": "text_input",
+          "subsection": "Matugen"
+        },
         {
-          "id": "enabled",
-          "label": "Enabled",
+          "id": "notifications_enabled",
+          "label": "Notifications Enabled",
           "description": "Show desktop notifications when theme changes",
           "type": "boolean",
           "default": true,
-          "ui_widget": "toggle"
+          "ui_widget": "toggle",
+          "subsection": "Notifications"
         },
         {
-          "id": "timeout",
-          "label": "Timeout (ms)",
+          "id": "notification_timeout",
+          "label": "Notification Timeout (ms)",
           "description": "Notification display duration in milliseconds",
           "type": "number",
           "default": 5000,
           "min": 0,
           "max": 30000,
-          "ui_widget": "number_input"
+          "ui_widget": "number_input",
+          "subsection": "Notifications"
         },
         {
           "id": "show_module_progress",
@@ -111,15 +115,9 @@
           "description": "Show individual notification for each module being applied",
           "type": "boolean",
           "default": false,
-          "ui_widget": "toggle"
-        }
-      ]
-    },
-    {
-      "id": "performance",
-      "title": "Performance",
-      "icon": "⚡",
-      "fields": [
+          "ui_widget": "toggle",
+          "subsection": "Notifications"
+        },
         {
           "id": "timeout",
           "label": "Timeout (seconds)",
@@ -128,7 +126,8 @@
           "default": 10,
           "min": 1,
           "max": 60,
-          "ui_widget": "number_input"
+          "ui_widget": "number_input",
+          "subsection": "Performance"
         },
         {
           "id": "slow_module_threshold",
@@ -138,51 +137,47 @@
           "default": 250,
           "min": 0,
           "max": 10000,
-          "ui_widget": "number_input"
-        }
-      ]
-    },
-    {
-      "id": "cache",
-      "title": "Cache",
-      "icon": "💾",
-      "fields": [
+          "ui_widget": "number_input",
+          "subsection": "Performance"
+        },
         {
-          "id": "enabled",
-          "label": "Enabled",
+          "id": "cache_enabled",
+          "label": "Cache Enabled",
           "description": "Cache matugen color generation results to speed up repeated theme switches",
           "type": "boolean",
           "default": true,
-          "ui_widget": "toggle"
+          "ui_widget": "toggle",
+          "subsection": "Cache"
         },
         {
-          "id": "dir",
+          "id": "cache_dir",
           "label": "Cache Directory",
           "description": "Directory to store cached color schemes (supports ~ and $VAR)",
           "type": "path",
           "file_type": "any",
           "default": "~/.cache/lmtt",
           "env_expand": true,
-          "ui_widget": "text_input"
-        }
-      ]
-    },
-    {
-      "id": "logging",
-      "title": "Logging",
-      "icon": "📝",
-      "fields": [
+          "ui_widget": "text_input",
+          "subsection": "Cache"
+        },
         {
-          "id": "level",
+          "id": "log_level",
           "label": "Log Level",
           "description": "Log verbosity level: trace, debug, info, warn, error",
           "type": "enum",
           "options_source": {
             "type": "static",
-            "values": ["trace", "debug", "info", "warn", "error"]
+            "values": [
+              "trace",
+              "debug",
+              "info",
+              "warn",
+              "error"
+            ]
           },
           "default": "info",
-          "ui_widget": "dropdown"
+          "ui_widget": "dropdown",
+          "subsection": "Logging"
         },
         {
           "id": "log_file",
@@ -192,7 +187,8 @@
           "file_type": "any",
           "default": "~/.cache/lmtt/lmtt.log",
           "env_expand": true,
-          "ui_widget": "text_input"
+          "ui_widget": "text_input",
+          "subsection": "Logging"
         },
         {
           "id": "max_log_size",
@@ -202,7 +198,286 @@
           "default": 10,
           "min": 1,
           "max": 1000,
-          "ui_widget": "number_input"
+          "ui_widget": "number_input",
+          "subsection": "Logging"
+        }
+      ]
+    },
+    {
+      "id": "theme_profiles.light",
+      "title": "Light Theme Profile",
+      "icon": "\u2600\ufe0f",
+      "fields": [
+        {
+          "id": "gtk_theme",
+          "label": "GTK Theme",
+          "description": "GTK theme for light mode",
+          "type": "enum",
+          "options_source": {
+            "type": "provider",
+            "provider": "lmtt_gtk_themes"
+          },
+          "ui_widget": "dropdown_searchable",
+          "default": "Adwaita",
+          "subsection": "GTK/GNOME"
+        },
+        {
+          "id": "gtk_icon_theme",
+          "label": "Icon Theme",
+          "description": "Icon theme for light mode",
+          "type": "enum",
+          "options_source": {
+            "type": "provider",
+            "provider": "lmtt_icon_themes"
+          },
+          "ui_widget": "dropdown_searchable",
+          "default": "breeze",
+          "subsection": "GTK/GNOME"
+        },
+        {
+          "id": "cursor_theme",
+          "label": "Cursor Theme",
+          "description": "Cursor theme for light mode",
+          "type": "enum",
+          "options_source": {
+            "type": "provider",
+            "provider": "lmtt_cursor_themes"
+          },
+          "ui_widget": "dropdown_searchable",
+          "default": "Adwaita",
+          "subsection": "Cursor"
+        },
+        {
+          "id": "cursor_size",
+          "label": "Cursor Size",
+          "description": "Cursor size in pixels",
+          "type": "number",
+          "default": 24,
+          "min": 8,
+          "max": 64,
+          "ui_widget": "number_input",
+          "subsection": "Cursor"
+        },
+        {
+          "id": "terminal_font",
+          "label": "Terminal Font",
+          "description": "Font for terminal applications in light mode",
+          "type": "enum",
+          "options_source": {
+            "type": "provider",
+            "provider": "lmtt_fonts"
+          },
+          "ui_widget": "dropdown_searchable",
+          "subsection": "Terminal"
+        },
+        {
+          "id": "terminal_font_size",
+          "label": "Terminal Font Size",
+          "description": "Terminal font size in points",
+          "type": "number",
+          "default": 11,
+          "min": 6,
+          "max": 32,
+          "ui_widget": "number_input",
+          "subsection": "Terminal"
+        },
+        {
+          "id": "system_font",
+          "label": "System Font",
+          "description": "System UI font for light mode",
+          "type": "enum",
+          "options_source": {
+            "type": "provider",
+            "provider": "lmtt_fonts"
+          },
+          "ui_widget": "dropdown_searchable",
+          "subsection": "GTK/GNOME"
+        },
+        {
+          "id": "vscode_theme",
+          "label": "VSCode Theme",
+          "description": "VSCode theme for light mode",
+          "type": "enum",
+          "options_source": {
+            "type": "provider",
+            "provider": "lmtt_vscode_themes"
+          },
+          "ui_widget": "dropdown_searchable",
+          "default": "Default Light+",
+          "subsection": "Editors"
+        },
+        {
+          "id": "neovim_colorscheme",
+          "label": "Neovim Colorscheme",
+          "description": "Neovim colorscheme for light mode",
+          "type": "enum",
+          "options_source": {
+            "type": "provider",
+            "provider": "lmtt_neovim_colorschemes"
+          },
+          "ui_widget": "dropdown_searchable",
+          "default": "default",
+          "subsection": "Editors"
+        },
+        {
+          "id": "terminal_opacity",
+          "label": "Terminal Opacity",
+          "description": "Terminal background opacity (0.0 = transparent, 1.0 = opaque)",
+          "type": "float",
+          "default": 0.95,
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.05,
+          "ui_widget": "number_input",
+          "subsection": "Terminal"
+        },
+        {
+          "id": "window_blur",
+          "label": "Window Blur",
+          "description": "Enable window blur effects in light mode",
+          "type": "boolean",
+          "default": false,
+          "ui_widget": "toggle",
+          "subsection": "Compositor"
+        }
+      ]
+    },
+    {
+      "id": "theme_profiles.dark",
+      "title": "Dark Theme Profile",
+      "icon": "\ud83c\udf19",
+      "fields": [
+        {
+          "id": "gtk_theme",
+          "label": "GTK Theme",
+          "description": "GTK theme for dark mode",
+          "type": "enum",
+          "options_source": {
+            "type": "provider",
+            "provider": "lmtt_gtk_themes"
+          },
+          "ui_widget": "dropdown_searchable",
+          "default": "Adwaita-dark",
+          "subsection": "GTK/GNOME"
+        },
+        {
+          "id": "gtk_icon_theme",
+          "label": "Icon Theme",
+          "description": "Icon theme for dark mode",
+          "type": "enum",
+          "options_source": {
+            "type": "provider",
+            "provider": "lmtt_icon_themes"
+          },
+          "ui_widget": "dropdown_searchable",
+          "default": "breeze-dark",
+          "subsection": "GTK/GNOME"
+        },
+        {
+          "id": "cursor_theme",
+          "label": "Cursor Theme",
+          "description": "Cursor theme for dark mode",
+          "type": "enum",
+          "options_source": {
+            "type": "provider",
+            "provider": "lmtt_cursor_themes"
+          },
+          "ui_widget": "dropdown_searchable",
+          "default": "Adwaita",
+          "subsection": "Cursor"
+        },
+        {
+          "id": "cursor_size",
+          "label": "Cursor Size",
+          "description": "Cursor size in pixels",
+          "type": "number",
+          "default": 24,
+          "min": 8,
+          "max": 64,
+          "ui_widget": "number_input",
+          "subsection": "Cursor"
+        },
+        {
+          "id": "terminal_font",
+          "label": "Terminal Font",
+          "description": "Font for terminal applications in dark mode",
+          "type": "enum",
+          "options_source": {
+            "type": "provider",
+            "provider": "lmtt_fonts"
+          },
+          "ui_widget": "dropdown_searchable",
+          "subsection": "Terminal"
+        },
+        {
+          "id": "terminal_font_size",
+          "label": "Terminal Font Size",
+          "description": "Terminal font size in points",
+          "type": "number",
+          "default": 11,
+          "min": 6,
+          "max": 32,
+          "ui_widget": "number_input",
+          "subsection": "Terminal"
+        },
+        {
+          "id": "system_font",
+          "label": "System Font",
+          "description": "System UI font for dark mode",
+          "type": "enum",
+          "options_source": {
+            "type": "provider",
+            "provider": "lmtt_fonts"
+          },
+          "ui_widget": "dropdown_searchable",
+          "subsection": "GTK/GNOME"
+        },
+        {
+          "id": "vscode_theme",
+          "label": "VSCode Theme",
+          "description": "VSCode theme for dark mode",
+          "type": "enum",
+          "options_source": {
+            "type": "provider",
+            "provider": "lmtt_vscode_themes"
+          },
+          "ui_widget": "dropdown_searchable",
+          "default": "Default Dark+",
+          "subsection": "Editors"
+        },
+        {
+          "id": "neovim_colorscheme",
+          "label": "Neovim Colorscheme",
+          "description": "Neovim colorscheme for dark mode",
+          "type": "enum",
+          "options_source": {
+            "type": "provider",
+            "provider": "lmtt_neovim_colorschemes"
+          },
+          "ui_widget": "dropdown_searchable",
+          "default": "default",
+          "subsection": "Editors"
+        },
+        {
+          "id": "terminal_opacity",
+          "label": "Terminal Opacity",
+          "description": "Terminal background opacity (0.0 = transparent, 1.0 = opaque)",
+          "type": "float",
+          "default": 0.95,
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.05,
+          "ui_widget": "number_input",
+          "subsection": "Terminal"
+        },
+        {
+          "id": "window_blur",
+          "label": "Window Blur",
+          "description": "Enable window blur effects in dark mode",
+          "type": "boolean",
+          "default": false,
+          "ui_widget": "toggle",
+          "subsection": "Compositor"
         }
       ]
     }

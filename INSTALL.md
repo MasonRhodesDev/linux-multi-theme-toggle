@@ -1,164 +1,65 @@
-# Installation Guide
+# LMTT Installation
 
-## Prerequisites
-
-- **Rust 1.70+** - Install from [rustup.rs](https://rustup.rs)
-- **matugen** - For color generation: `cargo install matugen`
-- **Git** - For cloning the repository
-
-## Quick Install (Recommended)
+## Quick Install
 
 ```bash
-# Clone repository
-cd ~/repos
-git clone https://github.com/yourusername/linux-matugen-theme-toggle.git
-cd linux-matugen-theme-toggle
-
-# Install to ~/.local/bin (no root needed)
-make install-user
+./install.sh
 ```
 
-## System-Wide Install
+## Manual Install
 
 ```bash
-cd ~/repos/linux-matugen-theme-toggle
-
-# Install to /usr/local/bin (default)
-sudo make install
-
-# Or install to /usr/bin
-sudo make install PREFIX=/usr
+cargo build --release
+cp target/release/lmtt ~/.local/bin/lmtt
 ```
 
-## Verify Installation
+## Usage
 
+### Configuration TUI
 ```bash
-which lmtt
-lmtt --help
+lmtt config
 ```
+Opens an interactive TUI to configure:
+- Theme profiles (light/dark)
+- Wallpaper path (supports `$WALLPAPER` env vars)
+- Matugen settings
+- Module settings
+- Notifications, cache, logging
 
-## Post-Installation
+Changes are auto-saved to `~/.config/lmtt/config.toml`
 
-1. **Create config file**:
-   ```bash
-   lmtt init
-   ```
-
-2. **Edit config** to set your wallpaper:
-   ```bash
-   vim ~/.config/lmtt/config.toml
-   ```
-
-3. **Run setup** to configure apps:
-   ```bash
-   lmtt setup
-   ```
-
-4. **Test theme switching**:
-   ```bash
-   lmtt switch dark
-   lmtt switch light
-   lmtt switch  # Toggle
-   ```
-
-## Build from Source Only
-
-If you just want to build without installing:
-
+### Theme Switching
 ```bash
-cd ~/repos/linux-matugen-theme-toggle
-make release
-
-# Binary will be at:
-./target/release/lmtt
+lmtt switch         # Toggle between light/dark
+lmtt switch light   # Switch to light theme
+lmtt switch dark    # Switch to dark theme
 ```
 
-## Uninstall
-
-### User Installation
+### Other Commands
 ```bash
-cd ~/repos/linux-matugen-theme-toggle
-make uninstall-user
+lmtt status         # Show current theme
+lmtt list           # List available modules
+lmtt init           # Create default config
+lmtt setup          # Configure application configs
+lmtt cleanup        # Remove lmtt injections
 ```
 
-### System Installation
-```bash
-cd ~/repos/linux-matugen-theme-toggle
-sudo make uninstall
+## Configuration
+
+Config file: `~/.config/lmtt/config.toml`
+
+You can use environment variables in the config:
+```toml
+[general]
+wallpaper = "$WALLPAPER"  # Expanded at runtime
 ```
 
-### Remove Config (Optional)
-```bash
-# Remove config injections from apps
-lmtt cleanup
+## Schema-Driven TUI Features
 
-# Remove lmtt config directory
-rm -rf ~/.config/lmtt
-
-# Remove cache
-rm -rf ~/.cache/lmtt
-```
-
-## Distribution Package (Future)
-
-### Arch Linux (AUR)
-```bash
-yay -S lmtt
-```
-
-### Fedora (COPR)
-```bash
-sudo dnf copr enable username/lmtt
-sudo dnf install lmtt
-```
-
-### Manual .tar.gz
-```bash
-# Download release tarball
-wget https://github.com/yourusername/lmtt/releases/download/v0.1.0/lmtt-0.1.0-x86_64-linux.tar.gz
-
-# Extract
-tar xzf lmtt-0.1.0-x86_64-linux.tar.gz
-cd lmtt-0.1.0
-
-# Install
-sudo install -Dm755 lmtt /usr/local/bin/lmtt
-```
-
-## Troubleshooting
-
-### "command not found: lmtt"
-
-Make sure `~/.local/bin` is in your PATH:
-```bash
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-### "error: failed to load manifest"
-
-Make sure you're in the repository directory:
-```bash
-cd ~/repos/linux-matugen-theme-toggle
-```
-
-### Rust not installed
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source ~/.cargo/env
-```
-
-### matugen not found
-
-```bash
-cargo install matugen
-# Or on Arch: yay -S matugen
-```
-
-## Next Steps
-
-After installation, see:
-- `QUICKSTART.md` for quick start guide
-- `README.md` for full documentation
-- `lmtt --help` for command reference
+- ✅ Auto-generated widgets from JSON schema
+- ✅ Dynamic dropdowns (GTK themes, fonts, etc.)
+- ✅ Terminal theme support (respects your colors)
+- ✅ Subsections for organized settings
+- ✅ Auto-save on every change
+- ✅ Searchable dropdowns
+- ✅ External editor support (press 'e' on path fields)

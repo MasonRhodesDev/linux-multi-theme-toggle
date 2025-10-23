@@ -1,5 +1,4 @@
 mod matugen;
-mod tui;
 
 use clap::{Parser, Subcommand};
 use lmtt_core::{Config, ThemeMode};
@@ -102,7 +101,7 @@ async fn main() -> Result<()> {
         }
         
         Commands::Config => {
-            return tui::run_tui();
+            return lmtt_config_tui::run_config_tui();
         }
     }
     
