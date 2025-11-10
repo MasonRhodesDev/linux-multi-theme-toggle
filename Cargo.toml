@@ -12,7 +12,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Mason"]
 license = "MIT"
-repository = "https://github.com/yourusername/lmtt"
+repository = "https://github.com/MasonRhodesDev/linux-multi-theme-toggle"
 description = "Linux Multi-Theme Toggle - Fast async theme switching for Hyprland/Wayland"
 
 [workspace.dependencies]
