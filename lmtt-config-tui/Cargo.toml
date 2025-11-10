@@ -12,7 +12,7 @@ name = "lmtt-config"
 path = "src/main.rs"
 
 [dependencies]
-schema-tui = { path = "../../schema-tui" }
+schema-tui = { git = "https://github.com/MasonRhodesDev/schema-tui.git" }
 lmtt-core = { path = "../lmtt-core" }
 
 anyhow = "1.0"
