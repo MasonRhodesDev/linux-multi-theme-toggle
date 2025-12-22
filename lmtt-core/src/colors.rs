@@ -80,24 +80,29 @@ pub fn map_to_accent_color(hex: &str) -> Result<String, String> {
 }
 
 /// Parse matugen JSON output into color map
+/// Supports matugen 3.0.0 format: { "colors": { "color_name": { "dark": "#xxx", "light": "#yyy" } } }
 pub fn parse_matugen_colors(json: &str, mode: &str) -> Result<HashMap<String, String>, String> {
     let value: serde_json::Value = serde_json::from_str(json)
         .map_err(|e| format!("Failed to parse matugen JSON: {}", e))?;
-    
+
     let colors = value
         .get("colors")
-        .and_then(|c| c.get(mode))
-        .ok_or_else(|| format!("No colors found for mode: {}", mode))?;
-    
+        .ok_or_else(|| "No colors object in matugen output".to_string())?;
+
     let mut map = HashMap::new();
-    
+
     if let Some(obj) = colors.as_object() {
-        for (key, value) in obj {
-            if let Some(color) = value.as_str() {
-                map.insert(key.clone(), color.to_string());
+        for (color_name, color_value) in obj {
+            // matugen 3.0.0: each color has dark/light/default variants
+            if let Some(hex) = color_value.get(mode).and_then(|v| v.as_str()) {
+                map.insert(color_name.clone(), hex.to_string());
             }
         }
     }
-    
+
+    if map.is_empty() {
+        return Err(format!("No colors found for mode: {}", mode));
+    }
+
     Ok(map)
 }
