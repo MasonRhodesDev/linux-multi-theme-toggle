@@ -23,93 +23,53 @@ impl ThemeModule for SwayNCModule {
     }
     
     async fn apply(&self, scheme: &ColorScheme, _config: &Config) -> Result<()> {
-        let style_file = dirs::config_dir()
+        // Write colors to shared matugen directory (same as waybar)
+        let css_path = dirs::config_dir()
             .ok_or(lmtt_core::Error::Config("No config dir".into()))?
-            .join("swaync")
-            .join("style.css");
-        
-        if let Some(parent) = style_file.parent() {
+            .join("matugen")
+            .join("lmtt-colors.css");
+
+        // Ensure directory exists
+        if let Some(parent) = css_path.parent() {
             tokio::fs::create_dir_all(parent).await?;
         }
-        
-        // Extract colors with defaults
-        let default_surface = "#12131a".to_string();
-        let default_on_surface = "#e3e1ec".to_string();
-        let default_primary = "#9fd491".to_string();
-        let default_error = "#ffb4ab".to_string();
-        
-        let surface = scheme.get("surface").unwrap_or(&default_surface);
-        let on_surface = scheme.get("on_surface").unwrap_or(&default_on_surface);
-        let on_surface_variant = scheme.get("on_surface_variant").unwrap_or(&default_on_surface);
-        let primary = scheme.get("primary").unwrap_or(&default_primary);
-        let error = scheme.get("error").unwrap_or(&default_error);
-        
-        // Generate SwayNC CSS
-        let css = format!(r#"/* SwayNC Theme - Material You (lmtt) */
 
-@define-color cc-bg {};
-@define-color noti-bg {};
-@define-color noti-bg-opaque {};
-@define-color noti-border-color transparent;
-@define-color noti-close-bg {};
-@define-color noti-close-bg-hover {};
-@define-color text-color {};
-@define-color text-color-disabled {};
-@define-color bg-selected {};
+        // Generate CSS file with @define-color declarations (same as waybar)
+        let css_content = scheme.to_gtk_css();
+        tokio::fs::write(&css_path, css_content).await?;
 
-* {{
-  font-family: "SF Pro Text", sans-serif;
-  font-size: 14px;
-}}
+        tracing::info!("[SwayNC] Updated colors at {}", css_path.display());
 
-.notification-row {{
-  outline: none;
-  background: transparent;
-}}
-
-.notification {{
-  background: @noti-bg;
-  border-radius: 12px;
-  padding: 12px;
-  margin: 6px;
-}}
-
-.control-center {{
-  background: @cc-bg;
-  border-radius: 16px;
-  padding: 16px;
-}}
-
-.notification-content {{
-  color: @text-color;
-}}
-
-.close-button {{
-  background: @noti-close-bg;
-  border-radius: 6px;
-}}
-
-.close-button:hover {{
-  background: @noti-close-bg-hover;
-}}
-"#, surface, surface, surface, error, error, on_surface, on_surface_variant, primary);
-        
-        tokio::fs::write(&style_file, css).await?;
-        
-        // Reload SwayNC
+        // Reload SwayNC CSS
         tokio::process::Command::new("swaync-client")
             .arg("--reload-css")
             .output()
             .await
             .ok();
-        
-        tracing::info!("[SwayNC] Updated style at {}", style_file.display());
-        
+
         Ok(())
     }
     
     async fn config_files(&self) -> Result<Vec<ConfigFileInfo>> {
-        // SwayNC style.css is fully managed by lmtt, no injection needed
-        Ok(vec![])
+        let config_dir = dirs::config_dir()
+            .ok_or(lmtt_core::Error::Config("No config dir".into()))?;
+
+        let style_css = config_dir.join("swaync").join("style.css");
+
+        if !style_css.exists() {
+            return Ok(vec![]);
+        }
+
+        // Check if already included
+        let content = tokio::fs::read_to_string(&style_css).await?;
+        let include_line = "@import url('../matugen/lmtt-colors.css');";
+        let already_included = content.contains(include_line);
+
+        Ok(vec![ConfigFileInfo {
+            path: style_css,
+            include_line: include_line.to_string(),
+            description: "Import lmtt colors into SwayNC CSS".to_string(),
+            already_included,
+        }])
     }
 }
