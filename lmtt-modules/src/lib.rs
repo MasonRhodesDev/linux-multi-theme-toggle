@@ -7,6 +7,7 @@ pub mod xdg;
 pub mod hyprland;
 pub mod waybar;
 pub mod wofi;
+pub mod fuzzel;
 pub mod tmux;
 pub mod swaync;
 pub mod wezterm;
