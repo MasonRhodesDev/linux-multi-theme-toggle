@@ -110,40 +110,47 @@ async fn main() -> Result<()> {
 
 async fn cmd_switch(mode: Option<ThemeMode>, _no_notify: bool) -> Result<()> {
     let config = Config::load()?;
+    let cache = lmtt_core::cache::Cache::from_config(&config)?;
     let registry = ModuleRegistry::new();
-    
+
     // Determine target mode (toggle if not specified)
     let mode = if let Some(m) = mode {
         m
     } else {
-        // Toggle: get current theme and switch to opposite
-        let cache_dir = std::path::PathBuf::from(
-            config.cache.dir.replace("~", &dirs::home_dir().unwrap().display().to_string())
-        );
-        let cache = lmtt_core::cache::Cache::new(cache_dir)?;
         let current = cache.get_theme_state().await?;
-        
         let toggled = match current.as_str() {
             "light" => ThemeMode::Dark,
             _ => ThemeMode::Light,
         };
-        
         println!("Toggling from {} to {} mode...", current, toggled);
         toggled
     };
-    
+
     println!("Switching to {} mode...", mode);
-    
+
     // Generate color scheme
-    let scheme = matugen::generate_colors(&config, mode).await?;
-    
+    let scheme = matugen::generate_colors(&config, mode, Some(&cache)).await?;
+
+    // Write shared lmtt-colors.css BEFORE modules run.
+    // GTK3 apps (Thunar) re-read gtk.css when gsettings changes, which
+    // @imports this file. It must have the new colors before the GTK
+    // module updates gsettings, otherwise apps render with stale colors.
+    let css_path = dirs::config_dir()
+        .ok_or(anyhow::anyhow!("No config dir"))?
+        .join("matugen")
+        .join("lmtt-colors.css");
+    if let Some(parent) = css_path.parent() {
+        tokio::fs::create_dir_all(parent).await?;
+    }
+    tokio::fs::write(&css_path, scheme.to_gtk_css()).await?;
+
     // Apply to all modules
     let results = registry.apply_all(&scheme, &config).await;
-    
+
     // Print results
     let mut successes = 0;
     let mut failures = 0;
-    
+
     for result in results {
         if result.is_success() {
             successes += 1;
@@ -160,20 +167,16 @@ async fn cmd_switch(mode: Option<ThemeMode>, _no_notify: bool) -> Result<()> {
             }
         }
     }
-    
+
     println!("\n{} successful, {} failed", successes, failures);
-    
+
+    // Always save theme state — partial success still means mode switched
+    cache.set_theme_state(&mode.to_string()).await?;
+
     if failures == 0 {
-        // Save theme state to cache
-        let cache_dir = std::path::PathBuf::from(
-            config.cache.dir.replace("~", &dirs::home_dir().unwrap().display().to_string())
-        );
-        let cache = lmtt_core::cache::Cache::new(cache_dir)?;
-        cache.set_theme_state(&mode.to_string()).await?;
-        
         println!("Theme switched to {} mode!", mode);
     }
-    
+
     Ok(())
 }
 
@@ -208,10 +211,7 @@ async fn cmd_cleanup(dry_run: bool, module: Option<String>) -> Result<()> {
 
 async fn cmd_status() -> Result<()> {
     let config = Config::load()?;
-    let cache_dir = std::path::PathBuf::from(
-        config.cache.dir.replace("~", &dirs::home_dir().unwrap().display().to_string())
-    );
-    let cache = lmtt_core::cache::Cache::new(cache_dir)?;
+    let cache = lmtt_core::cache::Cache::from_config(&config)?;
     
     let current_mode = cache.get_theme_state().await?;
     
