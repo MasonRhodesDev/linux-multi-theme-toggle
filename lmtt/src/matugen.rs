@@ -1,18 +1,19 @@
 use lmtt_core::{Config, ThemeMode, ColorScheme, Result, Error};
+use lmtt_core::cache::Cache;
 use std::path::Path;
 
 /// Generate color scheme using matugen, custom colors, or fallback
-pub async fn generate_colors(config: &Config, mode: ThemeMode) -> Result<ColorScheme> {
+pub async fn generate_colors(config: &Config, mode: ThemeMode, cache: Option<&Cache>) -> Result<ColorScheme> {
     let mut scheme = ColorScheme::new(mode);
-    
+
     // Try default colors first
     let default_path = match mode {
         ThemeMode::Light => &config.general.default_light_colors,
         ThemeMode::Dark => &config.general.default_dark_colors,
     };
-    
+
     let default_path_buf = std::path::PathBuf::from(default_path);
-    
+
     if default_path_buf.exists() {
         tracing::info!("Using default color scheme from {}", default_path_buf.display());
         let colors = load_custom_colors(&default_path_buf).await?;
@@ -22,7 +23,7 @@ pub async fn generate_colors(config: &Config, mode: ThemeMode) -> Result<ColorSc
     } else if config.general.use_matugen && which::which("matugen").is_ok() {
         // Try matugen if enabled and available
         tracing::info!("Generating colors with matugen");
-        let colors = generate_with_matugen(config, mode).await?;
+        let colors = generate_with_matugen(config, mode, cache).await?;
         for (key, value) in colors {
             scheme.set(key, value);
         }
@@ -37,12 +38,12 @@ pub async fn generate_colors(config: &Config, mode: ThemeMode) -> Result<ColorSc
             scheme.set(key, value);
         }
     }
-    
+
     // Apply color overrides from config
     for (key, value) in &config.colors.colors {
         scheme.set(key.clone(), value.clone());
     }
-    
+
     Ok(scheme)
 }
 
@@ -50,12 +51,12 @@ pub async fn generate_colors(config: &Config, mode: ThemeMode) -> Result<ColorSc
 async fn load_custom_colors(path: &Path) -> Result<std::collections::HashMap<String, String>> {
     let content = tokio::fs::read_to_string(path).await
         .map_err(|e| Error::Config(format!("Failed to read custom colors: {}", e)))?;
-    
+
     let json: serde_json::Value = serde_json::from_str(&content)
         .map_err(|e| Error::Config(format!("Failed to parse custom colors JSON: {}", e)))?;
-    
+
     let mut colors = std::collections::HashMap::new();
-    
+
     if let Some(obj) = json.as_object() {
         for (key, value) in obj {
             if let Some(color) = value.as_str() {
@@ -63,33 +64,44 @@ async fn load_custom_colors(path: &Path) -> Result<std::collections::HashMap<Str
             }
         }
     }
-    
+
     Ok(colors)
 }
 
+fn fallback_colors(mode: ThemeMode) -> std::collections::HashMap<String, String> {
+    match mode {
+        ThemeMode::Light => lmtt_core::fallback::fallback_light_colors(),
+        ThemeMode::Dark => lmtt_core::fallback::fallback_dark_colors(),
+    }
+}
+
 /// Generate colors using matugen
-async fn generate_with_matugen(config: &Config, mode: ThemeMode) -> Result<std::collections::HashMap<String, String>> {
+async fn generate_with_matugen(config: &Config, mode: ThemeMode, cache: Option<&Cache>) -> Result<std::collections::HashMap<String, String>> {
     let wallpaper = &config.general.wallpaper;
     let scheme_type = &config.general.scheme_type;
-    
-    // Expand tilde in wallpaper path
-    let wallpaper_path = if wallpaper.starts_with("~/") {
-        let home = dirs::home_dir()
-            .ok_or(Error::Config("No home directory".into()))?;
-        wallpaper.replacen("~", &home.display().to_string(), 1)
-    } else {
-        wallpaper.clone()
-    };
-    
+    let mode_str = mode.to_string();
+    let wallpaper_path = Path::new(wallpaper);
+
     // Check if wallpaper exists
-    if !Path::new(&wallpaper_path).exists() {
-        tracing::warn!("Wallpaper not found: {}, falling back to default colors", wallpaper_path);
-        return Ok(match mode {
-            ThemeMode::Light => lmtt_core::fallback::fallback_light_colors(),
-            ThemeMode::Dark => lmtt_core::fallback::fallback_dark_colors(),
-        });
+    if !wallpaper_path.exists() {
+        tracing::warn!("Wallpaper not found: {}, falling back to default colors", wallpaper);
+        return Ok(fallback_colors(mode));
     }
-    
+
+    // Check color cache
+    if let Some(cache) = cache {
+        match cache.get_cached_colors(wallpaper_path, &mode_str, scheme_type).await {
+            Ok(Some(colors)) => {
+                tracing::info!("Using cached colors for {} mode", mode_str);
+                return Ok(colors);
+            }
+            Ok(None) => {}
+            Err(e) => {
+                tracing::debug!("Cache lookup failed: {}", e);
+            }
+        }
+    }
+
     // Run matugen to generate colors
     let output = tokio::process::Command::new("matugen")
         .args(&[
@@ -97,28 +109,38 @@ async fn generate_with_matugen(config: &Config, mode: ThemeMode) -> Result<std::
             "hex",
             "--dry-run",
             "image",
-            &wallpaper_path,
+            wallpaper,
             "--mode",
-            &mode.to_string(),
+            &mode_str,
             "--type",
             scheme_type,
         ])
         .output()
         .await
         .map_err(|e| Error::Matugen(format!("Failed to run matugen: {}", e)))?;
-    
+
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         tracing::warn!("matugen failed: {}, falling back to default colors", stderr);
-        return Ok(match mode {
-            ThemeMode::Light => lmtt_core::fallback::fallback_light_colors(),
-            ThemeMode::Dark => lmtt_core::fallback::fallback_dark_colors(),
-        });
+        return Ok(fallback_colors(mode));
     }
-    
+
     let json = String::from_utf8_lossy(&output.stdout);
-    
-    // Parse colors from JSON
-    lmtt_core::colors::parse_matugen_colors(&json, &mode.to_string())
-        .map_err(|e| Error::Matugen(e))
+
+    // Parse colors from JSON, falling back on parse failure
+    match lmtt_core::colors::parse_matugen_colors(&json, &mode_str) {
+        Ok(colors) => {
+            // Write to cache on success
+            if let Some(cache) = cache {
+                if let Err(e) = cache.set_cached_colors(wallpaper_path, &mode_str, scheme_type, &colors).await {
+                    tracing::debug!("Failed to cache colors: {}", e);
+                }
+            }
+            Ok(colors)
+        }
+        Err(e) => {
+            tracing::warn!("Failed to parse matugen output: {}, falling back to default colors", e);
+            Ok(fallback_colors(mode))
+        }
+    }
 }
