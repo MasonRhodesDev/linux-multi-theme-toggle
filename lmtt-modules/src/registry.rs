@@ -34,29 +34,47 @@ impl ModuleRegistry {
         Self { modules }
     }
     
-    /// Apply theme to all enabled and installed modules in parallel
+    /// Apply theme to all enabled modules in two phases:
+    /// - Phase 1 (sequential): Platform modules with priority < 50, run in order
+    /// - Phase 2 (parallel): App modules with priority >= 50, spawned concurrently
     pub async fn apply_all(&self, scheme: &ColorScheme, config: &Config) -> Vec<ModuleResult> {
         use tokio::task::JoinSet;
-        
+
+        let mut results = Vec::new();
+
+        let (platform, app): (Vec<_>, Vec<_>) = self
+            .modules
+            .iter()
+            .filter(|m| m.is_enabled(config))
+            .partition(|m| m.priority() < 50);
+
+        // Phase 1: sequential platform modules (already sorted by priority)
+        for module in &platform {
+            let name = module.name();
+            let start = Instant::now();
+            let result = module.apply(scheme, config).await;
+            let duration_ms = start.elapsed().as_millis() as u64;
+            tracing::debug!("[Registry] Phase 1 (sequential): {} completed in {}ms", name, duration_ms);
+            results.push(ModuleResult {
+                name: name.to_string(),
+                duration_ms,
+                result,
+            });
+        }
+
+        // Phase 2: parallel app modules
         let mut tasks = JoinSet::new();
-        
-        for module in &self.modules {
-            // Skip if not enabled or not installed
-            if !module.is_enabled(config) {
-                continue;
-            }
-            
+        for module in &app {
             let module = Arc::clone(module);
             let scheme = scheme.clone();
             let config = config.clone();
-            
+
             tasks.spawn(async move {
                 let name = module.name();
                 let start = Instant::now();
-                
                 let result = module.apply(&scheme, &config).await;
                 let duration_ms = start.elapsed().as_millis() as u64;
-                
+                tracing::debug!("[Registry] Phase 2 (parallel): {} completed in {}ms", name, duration_ms);
                 ModuleResult {
                     name: name.to_string(),
                     duration_ms,
@@ -64,15 +82,13 @@ impl ModuleRegistry {
                 }
             });
         }
-        
-        // Wait for all tasks
-        let mut results = Vec::new();
+
         while let Some(result) = tasks.join_next().await {
             if let Ok(module_result) = result {
                 results.push(module_result);
             }
         }
-        
+
         results
     }
     
