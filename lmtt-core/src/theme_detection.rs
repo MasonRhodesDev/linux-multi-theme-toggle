@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 use std::collections::HashSet;
 
+use crate::ThemeMode;
+
 pub fn detect_gtk_themes() -> Vec<String> {
     let mut themes = HashSet::new();
     
@@ -66,6 +68,38 @@ pub fn detect_icon_themes() -> Vec<String> {
     let mut theme_list: Vec<String> = themes.into_iter().collect();
     theme_list.sort();
     theme_list
+}
+
+/// Given an icon theme name and target mode, find the appropriate light/dark variant.
+///
+/// For dark mode: looks for `{theme}-dark`, `{theme}-Dark`, `{theme}Dark` among installed themes.
+/// For light mode: tries stripping `-dark`, `-Dark`, or `Dark` suffixes.
+/// Returns `None` if no variant is found (caller should keep the original).
+pub fn find_icon_theme_variant(theme: &str, mode: ThemeMode) -> Option<String> {
+    let installed: HashSet<String> = detect_icon_themes().into_iter().collect();
+
+    let candidates = match mode {
+        ThemeMode::Dark => vec![
+            format!("{}-dark", theme),
+            format!("{}-Dark", theme),
+            format!("{}Dark", theme),
+        ],
+        ThemeMode::Light => {
+            let mut c = Vec::new();
+            if let Some(base) = theme.strip_suffix("-dark") {
+                c.push(base.to_string());
+            }
+            if let Some(base) = theme.strip_suffix("-Dark") {
+                c.push(base.to_string());
+            }
+            if let Some(base) = theme.strip_suffix("Dark") {
+                c.push(base.to_string());
+            }
+            c
+        }
+    };
+
+    candidates.into_iter().find(|c| installed.contains(c))
 }
 
 pub fn detect_cursor_themes() -> Vec<String> {
