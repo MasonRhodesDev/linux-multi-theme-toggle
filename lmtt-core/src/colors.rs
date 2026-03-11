@@ -80,7 +80,9 @@ pub fn map_to_accent_color(hex: &str) -> Result<String, String> {
 }
 
 /// Parse matugen JSON output into color map
-/// Supports matugen 3.0.0 format: { "colors": { "color_name": { "dark": "#xxx", "light": "#yyy" } } }
+/// Supports both formats:
+/// - v3 actual: { "colors": { "dark": { "primary": "#xxx", ... }, "light": { ... } } }
+/// - v3 legacy:  { "colors": { "primary": { "dark": "#xxx", "light": "#yyy" }, ... } }
 pub fn parse_matugen_colors(json: &str, mode: &str) -> Result<HashMap<String, String>, String> {
     let value: serde_json::Value = serde_json::from_str(json)
         .map_err(|e| format!("Failed to parse matugen JSON: {}", e))?;
@@ -91,11 +93,22 @@ pub fn parse_matugen_colors(json: &str, mode: &str) -> Result<HashMap<String, St
 
     let mut map = HashMap::new();
 
-    if let Some(obj) = colors.as_object() {
-        for (color_name, color_value) in obj {
-            // matugen 3.0.0: each color has dark/light/default variants
-            if let Some(hex) = color_value.get(mode).and_then(|v| v.as_str()) {
+    // Try v3 actual format first: colors[mode][color_name]
+    if let Some(mode_obj) = colors.get(mode).and_then(|v| v.as_object()) {
+        for (color_name, color_value) in mode_obj {
+            if let Some(hex) = color_value.as_str() {
                 map.insert(color_name.clone(), hex.to_string());
+            }
+        }
+    }
+
+    // Fall back to legacy format: colors[color_name][mode]
+    if map.is_empty() {
+        if let Some(obj) = colors.as_object() {
+            for (color_name, color_value) in obj {
+                if let Some(hex) = color_value.get(mode).and_then(|v| v.as_str()) {
+                    map.insert(color_name.clone(), hex.to_string());
+                }
             }
         }
     }
@@ -105,4 +118,53 @@ pub fn parse_matugen_colors(json: &str, mode: &str) -> Result<HashMap<String, St
     }
 
     Ok(map)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_v3_actual_format() {
+        let json = r##"{"colors":{"dark":{"primary":"#d0bcff","secondary":"#ccc2dc"},"light":{"primary":"#6750a4","secondary":"#625b71"}}}"##;
+        let colors = parse_matugen_colors(json, "dark").unwrap();
+        assert_eq!(colors.get("primary").unwrap(), "#d0bcff");
+        assert_eq!(colors.get("secondary").unwrap(), "#ccc2dc");
+
+        let colors = parse_matugen_colors(json, "light").unwrap();
+        assert_eq!(colors.get("primary").unwrap(), "#6750a4");
+    }
+
+    #[test]
+    fn test_parse_legacy_format() {
+        let json = r##"{"colors":{"primary":{"dark":"#d0bcff","light":"#6750a4"},"secondary":{"dark":"#ccc2dc","light":"#625b71"}}}"##;
+        let colors = parse_matugen_colors(json, "dark").unwrap();
+        assert_eq!(colors.get("primary").unwrap(), "#d0bcff");
+        assert_eq!(colors.get("secondary").unwrap(), "#ccc2dc");
+
+        let colors = parse_matugen_colors(json, "light").unwrap();
+        assert_eq!(colors.get("primary").unwrap(), "#6750a4");
+    }
+
+    #[test]
+    fn test_parse_missing_mode() {
+        let json = r##"{"colors":{"dark":{"primary":"#d0bcff"}}}"##;
+        let result = parse_matugen_colors(json, "nonexistent");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("No colors found"));
+    }
+
+    #[test]
+    fn test_parse_invalid_json() {
+        let result = parse_matugen_colors("not json", "dark");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Failed to parse"));
+    }
+
+    #[test]
+    fn test_parse_no_colors_key() {
+        let result = parse_matugen_colors(r##"{"other": {}}"##, "dark");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("No colors object"));
+    }
 }
