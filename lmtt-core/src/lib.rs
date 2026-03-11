@@ -9,3 +9,4 @@ pub mod theme_detection;
 pub use config::Config;
 pub use types::{ThemeMode, ColorScheme};
 pub use error::{Error, Result};
+pub use theme_detection::find_icon_theme_variant;
