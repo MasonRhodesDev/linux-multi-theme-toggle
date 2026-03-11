@@ -109,6 +109,28 @@ impl ThemeModule for GtkModule {
             .output()
             .await?;
 
+        // Update GTK settings.ini files for apps that read these directly
+        // (e.g., XFCE apps without xsettingsd). These are picked up on next window open.
+        let prefer_dark = matches!(mode, ThemeMode::Dark);
+        let home = dirs::home_dir()
+            .ok_or(lmtt_core::Error::Config("No home dir".into()))?;
+
+        let gtk3_content = format!(
+            "[Settings]\ngtk-theme-name = {}\ngtk-icon-theme-name = {}\ngtk-application-prefer-dark-theme = {}\n",
+            theme, icon_theme, prefer_dark
+        );
+        let gtk3_dir = home.join(".config/gtk-3.0");
+        tokio::fs::create_dir_all(&gtk3_dir).await?;
+        tokio::fs::write(gtk3_dir.join("settings.ini"), &gtk3_content).await?;
+
+        let gtk4_content = format!(
+            "[Settings]\ngtk-theme-name = {}\ngtk-icon-theme-name = {}\n\n[AdwStyleManager]\ncolor-scheme = {}\n",
+            theme, icon_theme, if prefer_dark { "ADW_COLOR_SCHEME_PREFER_DARK" } else { "ADW_COLOR_SCHEME_PREFER_LIGHT" }
+        );
+        let gtk4_dir = home.join(".config/gtk-4.0");
+        tokio::fs::create_dir_all(&gtk4_dir).await?;
+        tokio::fs::write(gtk4_dir.join("settings.ini"), &gtk4_content).await?;
+
         tracing::info!("[GTK] Set gtk-theme to {}, icon-theme to {}, color-scheme to {}",
             theme, icon_theme, preference);
 
