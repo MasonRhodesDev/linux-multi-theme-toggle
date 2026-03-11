@@ -15,6 +15,7 @@ pub mod vscode;
 pub mod nvim;
 pub mod fish;
 pub mod qt;
+pub mod xfconf;
 pub mod hyprpanel;
 
 use async_trait::async_trait;
