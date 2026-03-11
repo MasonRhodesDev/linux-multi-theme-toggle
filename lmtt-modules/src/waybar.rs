@@ -33,14 +33,16 @@ impl ThemeModule for WaybarModule {
             tokio::fs::create_dir_all(parent).await?;
         }
         
-        // Generate CSS file with @define-color declarations
-        let css_content = scheme.to_gtk_css();
+        // Generate CSS file with @define-color declarations + tray icon theming
+        let mut css_content = scheme.to_gtk_css();
+        css_content.push_str("\n/* Tray icon theming: prefer symbolic icons recolored by foreground */\n");
+        css_content.push_str("#tray {\n    -gtk-icon-style: symbolic;\n    color: @foreground;\n}\n");
         tokio::fs::write(&css_path, css_content).await?;
         
         tracing::info!("[Waybar] Updated colors at {}", css_path.display());
-        
-        // Waybar hot-reloads CSS automatically with reload_style_on_change: true
-        // No restart needed!
+
+        // Waybar hot-reloads CSS via reload_style_on_change: true.
+        // Symbolic icons in hicolor use currentColor and are recolored by CSS.
         
         Ok(())
     }
