@@ -5,6 +5,7 @@ pub mod custom;
 pub mod gtk;
 pub mod xdg;
 pub mod hyprland;
+pub mod hyprlock;
 pub mod waybar;
 pub mod wofi;
 pub mod fuzzel;
@@ -17,6 +18,7 @@ pub mod fish;
 pub mod qt;
 pub mod xfconf;
 pub mod hyprpanel;
+pub mod regreet;
 
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Result, Config};
