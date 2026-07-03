@@ -16,9 +16,29 @@
 
 ## Installation
 
-### Requirements
+### Arch Linux
 
-- Rust 1.70+ (`rustup` recommended)
+Add the `[mason]` repo to `/etc/pacman.conf`, then install:
+
+```ini
+[mason]
+SigLevel = Optional TrustAll
+Server = https://masonrhodesdev.github.io/arch-repo/x86_64
+```
+
+```bash
+sudo pacman -Sy lmtt
+```
+
+### Fedora
+
+```bash
+sudo dnf copr enable solaris765/lmtt
+sudo dnf install lmtt
+```
+
+### Optional Runtime Dependencies
+
 - [matugen](https://github.com/InioX/matugen) - **Optional**, for wallpaper-based color generation
   - If not installed, LMTT uses built-in Material You fallback themes
   - Can also use custom JSON color files
@@ -26,18 +46,16 @@
 
 ### Build from Source
 
-```bash
-git clone https://github.com/yourusername/lmtt.git
-cd lmtt
-make install
-```
-
-Or manually:
+Requires Rust 1.70+ (`rustup` recommended):
 
 ```bash
-cargo build --release
-sudo cp target/release/lmtt /usr/local/bin/
+git clone https://github.com/MasonRhodesDev/linux-multi-theme-toggle.git
+cd linux-multi-theme-toggle
+sudo make install PREFIX=/usr
 ```
+
+This installs both binaries (`lmtt`, `lmtt-config`) plus the config example
+and custom-module examples under `/usr/share/lmtt/`.
 
 ## Quick Start
 
