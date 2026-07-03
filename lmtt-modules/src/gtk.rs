@@ -1,6 +1,6 @@
-use crate::{ThemeModule, ConfigFileInfo};
+use crate::{ConfigFileInfo, ThemeModule};
 use async_trait::async_trait;
-use lmtt_core::{ColorScheme, Config, Result, ThemeMode, find_icon_theme_variant};
+use lmtt_core::{find_icon_theme_variant, ColorScheme, Config, Result, ThemeMode};
 
 crate::register_module!(GtkModule);
 
@@ -23,7 +23,7 @@ impl ThemeModule for GtkModule {
     }
 
     fn priority(&self) -> u8 {
-        10  // Platform module - run first
+        10 // Platform module - run first
     }
 
     async fn apply(&self, _scheme: &ColorScheme, _config: &Config) -> Result<()> {
@@ -66,9 +66,9 @@ impl ThemeModule for GtkModule {
                 .ok()
                 .and_then(|o| {
                     if o.status.success() {
-                        String::from_utf8(o.stdout).ok().map(|s| {
-                            s.trim().trim_matches('\'').to_string()
-                        })
+                        String::from_utf8(o.stdout)
+                            .ok()
+                            .map(|s| s.trim().trim_matches('\'').to_string())
                     } else {
                         None
                     }
@@ -76,27 +76,41 @@ impl ThemeModule for GtkModule {
 
             match current {
                 Some(current_theme) => {
-                    find_icon_theme_variant(&current_theme, mode)
-                        .unwrap_or(current_theme)
+                    find_icon_theme_variant(&current_theme, mode).unwrap_or(current_theme)
                 }
                 None => "Adwaita".to_string(),
             }
         };
 
         tokio::process::Command::new("gsettings")
-            .args(&["set", "org.gnome.desktop.interface", "icon-theme", &icon_theme])
+            .args(&[
+                "set",
+                "org.gnome.desktop.interface",
+                "icon-theme",
+                &icon_theme,
+            ])
             .output()
             .await?;
 
         if let Some(ref cursor_theme) = profile.cursor_theme {
             tokio::process::Command::new("gsettings")
-                .args(&["set", "org.gnome.desktop.interface", "cursor-theme", cursor_theme])
+                .args(&[
+                    "set",
+                    "org.gnome.desktop.interface",
+                    "cursor-theme",
+                    cursor_theme,
+                ])
                 .output()
                 .await?;
 
             let cursor_size = profile.cursor_size.to_string();
             tokio::process::Command::new("gsettings")
-                .args(&["set", "org.gnome.desktop.interface", "cursor-size", &cursor_size])
+                .args(&[
+                    "set",
+                    "org.gnome.desktop.interface",
+                    "cursor-size",
+                    &cursor_size,
+                ])
                 .output()
                 .await?;
         }
@@ -105,15 +119,19 @@ impl ThemeModule for GtkModule {
         // the portal's SettingChanged. Setting it after all other gsettings
         // changes prevents re-evaluation races.
         tokio::process::Command::new("gsettings")
-            .args(&["set", "org.gnome.desktop.interface", "color-scheme", preference])
+            .args(&[
+                "set",
+                "org.gnome.desktop.interface",
+                "color-scheme",
+                preference,
+            ])
             .output()
             .await?;
 
         // Update GTK settings.ini files for apps that read these directly
         // (e.g., XFCE apps without xsettingsd). These are picked up on next window open.
         let prefer_dark = matches!(mode, ThemeMode::Dark);
-        let home = dirs::home_dir()
-            .ok_or(lmtt_core::Error::Config("No home dir".into()))?;
+        let home = dirs::home_dir().ok_or(lmtt_core::Error::Config("No home dir".into()))?;
 
         let gtk3_content = format!(
             "[Settings]\ngtk-theme-name = {}\ngtk-icon-theme-name = {}\ngtk-application-prefer-dark-theme = {}\n",
@@ -131,8 +149,12 @@ impl ThemeModule for GtkModule {
         tokio::fs::create_dir_all(&gtk4_dir).await?;
         tokio::fs::write(gtk4_dir.join("settings.ini"), &gtk4_content).await?;
 
-        tracing::info!("[GTK] Set gtk-theme to {}, icon-theme to {}, color-scheme to {}",
-            theme, icon_theme, preference);
+        tracing::info!(
+            "[GTK] Set gtk-theme to {}, icon-theme to {}, color-scheme to {}",
+            theme,
+            icon_theme,
+            preference
+        );
 
         Ok(())
     }

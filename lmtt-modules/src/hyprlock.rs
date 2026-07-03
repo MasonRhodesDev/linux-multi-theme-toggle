@@ -1,4 +1,4 @@
-use crate::{ThemeModule, ConfigFileInfo};
+use crate::{ConfigFileInfo, ThemeModule};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result};
 
@@ -59,10 +59,14 @@ impl ThemeModule for HyprlockModule {
         let surface = scheme.get("surface").unwrap_or(&default_surface);
         let on_surface = scheme.get("on_surface").unwrap_or(&default_on_surface);
         let primary = scheme.get("primary").unwrap_or(&default_primary);
-        let primary_container = scheme.get("primary_container").unwrap_or(&default_primary_container);
+        let primary_container = scheme
+            .get("primary_container")
+            .unwrap_or(&default_primary_container);
         let error = scheme.get("error").unwrap_or(&default_error);
         let secondary = scheme.get("secondary").unwrap_or(&default_secondary);
-        let surface_container = scheme.get("surface_container").unwrap_or(&default_surface_container);
+        let surface_container = scheme
+            .get("surface_container")
+            .unwrap_or(&default_surface_container);
 
         // Generate content
         let mut content = String::new();
@@ -71,13 +75,34 @@ impl ThemeModule for HyprlockModule {
         content.push_str(&format!("# Mode: {}\n\n", scheme.mode));
 
         // RGB format (without #)
-        content.push_str(&format!("$surface = rgb({})\n", surface.trim_start_matches('#')));
-        content.push_str(&format!("$on_surface = rgb({})\n", on_surface.trim_start_matches('#')));
-        content.push_str(&format!("$primary = rgb({})\n", primary.trim_start_matches('#')));
-        content.push_str(&format!("$primary_container = rgb({})\n", primary_container.trim_start_matches('#')));
-        content.push_str(&format!("$error = rgb({})\n", error.trim_start_matches('#')));
-        content.push_str(&format!("$secondary = rgb({})\n", secondary.trim_start_matches('#')));
-        content.push_str(&format!("$surface_container = rgb({})\n", surface_container.trim_start_matches('#')));
+        content.push_str(&format!(
+            "$surface = rgb({})\n",
+            surface.trim_start_matches('#')
+        ));
+        content.push_str(&format!(
+            "$on_surface = rgb({})\n",
+            on_surface.trim_start_matches('#')
+        ));
+        content.push_str(&format!(
+            "$primary = rgb({})\n",
+            primary.trim_start_matches('#')
+        ));
+        content.push_str(&format!(
+            "$primary_container = rgb({})\n",
+            primary_container.trim_start_matches('#')
+        ));
+        content.push_str(&format!(
+            "$error = rgb({})\n",
+            error.trim_start_matches('#')
+        ));
+        content.push_str(&format!(
+            "$secondary = rgb({})\n",
+            secondary.trim_start_matches('#')
+        ));
+        content.push_str(&format!(
+            "$surface_container = rgb({})\n",
+            surface_container.trim_start_matches('#')
+        ));
         content.push_str("\n");
 
         // RGBA versions for backgrounds with transparency
@@ -86,10 +111,22 @@ impl ThemeModule for HyprlockModule {
         let (scr, scg, scb) = Self::hex_to_rgb(surface_container);
 
         content.push_str("# RGBA versions for backgrounds\n");
-        content.push_str(&format!("$surface_rgba = rgba({}, {}, {}, 1.0)\n", sr, sg, sb));
-        content.push_str(&format!("$primary_rgba = rgba({}, {}, {}, 1.0)\n", pr, pg, pb));
-        content.push_str(&format!("$surface_dim_rgba = rgba({}, {}, {}, 0.7)\n", scr, scg, scb));
-        content.push_str(&format!("$surface_container_rgba = rgba({}, {}, {}, 0.85)\n", scr, scg, scb));
+        content.push_str(&format!(
+            "$surface_rgba = rgba({}, {}, {}, 1.0)\n",
+            sr, sg, sb
+        ));
+        content.push_str(&format!(
+            "$primary_rgba = rgba({}, {}, {}, 1.0)\n",
+            pr, pg, pb
+        ));
+        content.push_str(&format!(
+            "$surface_dim_rgba = rgba({}, {}, {}, 0.7)\n",
+            scr, scg, scb
+        ));
+        content.push_str(&format!(
+            "$surface_container_rgba = rgba({}, {}, {}, 0.85)\n",
+            scr, scg, scb
+        ));
 
         tokio::fs::write(&colors_conf, content).await?;
 
@@ -99,8 +136,8 @@ impl ThemeModule for HyprlockModule {
     }
 
     async fn config_files(&self) -> Result<Vec<ConfigFileInfo>> {
-        let config_dir = dirs::config_dir()
-            .ok_or(lmtt_core::Error::Config("No config dir".into()))?;
+        let config_dir =
+            dirs::config_dir().ok_or(lmtt_core::Error::Config("No config dir".into()))?;
 
         let hyprlock_conf = config_dir.join("hypr").join("hyprlock.conf");
 

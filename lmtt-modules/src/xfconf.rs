@@ -1,6 +1,6 @@
-use crate::{ThemeModule, ConfigFileInfo};
+use crate::{ConfigFileInfo, ThemeModule};
 use async_trait::async_trait;
-use lmtt_core::{ColorScheme, Config, Result, ThemeMode, find_icon_theme_variant};
+use lmtt_core::{find_icon_theme_variant, ColorScheme, Config, Result, ThemeMode};
 
 crate::register_module!(XfconfModule);
 
@@ -20,7 +20,9 @@ impl XfconfModule {
 
         if result.as_ref().map(|o| !o.status.success()).unwrap_or(true) {
             tokio::process::Command::new("xfconf-query")
-                .args(&["-c", channel, "-p", property, "-s", value, "--create", "-t", "string"])
+                .args(&[
+                    "-c", channel, "-p", property, "-s", value, "--create", "-t", "string",
+                ])
                 .output()
                 .await
                 .ok();
@@ -36,7 +38,9 @@ impl XfconfModule {
 
         if result.as_ref().map(|o| !o.status.success()).unwrap_or(true) {
             tokio::process::Command::new("xfconf-query")
-                .args(&["-c", channel, "-p", property, "-s", val, "--create", "-t", "bool"])
+                .args(&[
+                    "-c", channel, "-p", property, "-s", val, "--create", "-t", "bool",
+                ])
                 .output()
                 .await
                 .ok();
@@ -55,7 +59,7 @@ impl ThemeModule for XfconfModule {
     }
 
     fn priority(&self) -> u8 {
-        15  // Platform module - after GTK, before app modules
+        15 // Platform module - after GTK, before app modules
     }
 
     async fn apply(&self, _scheme: &ColorScheme, _config: &Config) -> Result<()> {
@@ -72,7 +76,8 @@ impl ThemeModule for XfconfModule {
         let theme = profile.gtk_theme.as_deref().unwrap_or("Adwaita");
         let base_theme = theme.strip_suffix("-dark").unwrap_or(theme);
 
-        self.xfconf_set("xsettings", "/Net/ThemeName", base_theme).await;
+        self.xfconf_set("xsettings", "/Net/ThemeName", base_theme)
+            .await;
 
         // Set icon theme
         let icon_theme = if let Some(ref explicit) = profile.gtk_icon_theme {
@@ -85,7 +90,9 @@ impl ThemeModule for XfconfModule {
                 .ok()
                 .and_then(|o| {
                     if o.status.success() {
-                        String::from_utf8(o.stdout).ok().map(|s| s.trim().to_string())
+                        String::from_utf8(o.stdout)
+                            .ok()
+                            .map(|s| s.trim().to_string())
                     } else {
                         None
                     }
@@ -93,26 +100,38 @@ impl ThemeModule for XfconfModule {
 
             match current {
                 Some(current_theme) => {
-                    find_icon_theme_variant(&current_theme, mode)
-                        .unwrap_or(current_theme)
+                    find_icon_theme_variant(&current_theme, mode).unwrap_or(current_theme)
                 }
                 None => "Adwaita".to_string(),
             }
         };
 
-        self.xfconf_set("xsettings", "/Net/IconThemeName", &icon_theme).await;
+        self.xfconf_set("xsettings", "/Net/IconThemeName", &icon_theme)
+            .await;
 
         if let Some(ref cursor_theme) = profile.cursor_theme {
-            self.xfconf_set("xsettings", "/Gtk/CursorThemeName", cursor_theme).await;
-            self.xfconf_set("xsettings", "/Gtk/CursorThemeSize", &profile.cursor_size.to_string()).await;
+            self.xfconf_set("xsettings", "/Gtk/CursorThemeName", cursor_theme)
+                .await;
+            self.xfconf_set(
+                "xsettings",
+                "/Gtk/CursorThemeSize",
+                &profile.cursor_size.to_string(),
+            )
+            .await;
         }
 
         // Set ApplicationPreferDarkTheme so xfce's GTK module applies the correct
         // dark-theme preference to Thunar and other XFCE-managed GTK3 apps.
         let prefer_dark = matches!(mode, ThemeMode::Dark);
-        self.xfconf_set_bool("xsettings", "/Gtk/ApplicationPreferDarkTheme", prefer_dark).await;
+        self.xfconf_set_bool("xsettings", "/Gtk/ApplicationPreferDarkTheme", prefer_dark)
+            .await;
 
-        tracing::info!("[xfconf] Set ThemeName={}, IconThemeName={}, PreferDark={}", base_theme, icon_theme, prefer_dark);
+        tracing::info!(
+            "[xfconf] Set ThemeName={}, IconThemeName={}, PreferDark={}",
+            base_theme,
+            icon_theme,
+            prefer_dark
+        );
 
         Ok(())
     }

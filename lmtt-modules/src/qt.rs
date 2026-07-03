@@ -1,4 +1,4 @@
-use crate::{ThemeModule, ConfigFileInfo};
+use crate::{ConfigFileInfo, ThemeModule};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result};
 
@@ -27,8 +27,7 @@ impl ThemeModule for QtModule {
     }
 
     async fn apply(&self, scheme: &ColorScheme, _config: &Config) -> Result<()> {
-        let home = dirs::home_dir()
-            .ok_or(lmtt_core::Error::Config("No home dir".into()))?;
+        let home = dirs::home_dir().ok_or(lmtt_core::Error::Config("No home dir".into()))?;
 
         let is_light = scheme.get("mode").map(|m| m == "light").unwrap_or(false);
         let mode = if is_light { "light" } else { "dark" };
@@ -54,8 +53,14 @@ impl ThemeModule for QtModule {
         tokio::fs::write(&scheme_file, kde_colors).await?;
 
         let env_commands = vec![
-            ("systemctl", vec!["--user", "set-environment", "QT_QPA_PLATFORMTHEME=qt6ct"]),
-            ("dbus-update-activation-environment", vec!["--systemd", "QT_QPA_PLATFORMTHEME=qt6ct"]),
+            (
+                "systemctl",
+                vec!["--user", "set-environment", "QT_QPA_PLATFORMTHEME=qt6ct"],
+            ),
+            (
+                "dbus-update-activation-environment",
+                vec!["--systemd", "QT_QPA_PLATFORMTHEME=qt6ct"],
+            ),
         ];
 
         for (cmd, args) in env_commands {

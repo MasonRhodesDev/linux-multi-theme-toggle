@@ -1,4 +1,4 @@
-use crate::{ThemeModule, ModuleConstructor};
+use crate::{ModuleConstructor, ThemeModule};
 use lmtt_core::{ColorScheme, Config, Result};
 use std::sync::Arc;
 use std::time::Instant;
@@ -10,12 +10,12 @@ pub struct ModuleRegistry {
 impl ModuleRegistry {
     pub fn new() -> Self {
         let mut modules: Vec<Arc<dyn ThemeModule>> = Vec::new();
-        
+
         // Auto-discover built-in modules using inventory
         for constructor in inventory::iter::<ModuleConstructor> {
             modules.push((constructor.constructor)());
         }
-        
+
         // Load custom modules from ~/.config/lmtt/modules/
         match crate::custom::load_custom_modules() {
             Ok(custom_modules) => {
@@ -27,13 +27,13 @@ impl ModuleRegistry {
                 tracing::warn!("Failed to load custom modules: {}", e);
             }
         }
-        
+
         // Sort by priority (platform modules first, then apps)
         modules.sort_by_key(|m| m.priority());
-        
+
         Self { modules }
     }
-    
+
     /// Apply theme to all enabled modules in two phases:
     /// - Phase 1 (sequential): Platform modules with priority < 50, run in order
     /// - Phase 2 (parallel): App modules with priority >= 50, spawned concurrently
@@ -54,7 +54,11 @@ impl ModuleRegistry {
             let start = Instant::now();
             let result = module.apply(scheme, config).await;
             let duration_ms = start.elapsed().as_millis() as u64;
-            tracing::debug!("[Registry] Phase 1 (sequential): {} completed in {}ms", name, duration_ms);
+            tracing::debug!(
+                "[Registry] Phase 1 (sequential): {} completed in {}ms",
+                name,
+                duration_ms
+            );
             results.push(ModuleResult {
                 name: name.to_string(),
                 duration_ms,
@@ -74,7 +78,11 @@ impl ModuleRegistry {
                 let start = Instant::now();
                 let result = module.apply(&scheme, &config).await;
                 let duration_ms = start.elapsed().as_millis() as u64;
-                tracing::debug!("[Registry] Phase 2 (parallel): {} completed in {}ms", name, duration_ms);
+                tracing::debug!(
+                    "[Registry] Phase 2 (parallel): {} completed in {}ms",
+                    name,
+                    duration_ms
+                );
                 ModuleResult {
                     name: name.to_string(),
                     duration_ms,
@@ -91,7 +99,7 @@ impl ModuleRegistry {
 
         results
     }
-    
+
     /// Get list of all enabled module names
     pub fn enabled_modules(&self, config: &Config) -> Vec<&str> {
         self.modules
@@ -100,7 +108,7 @@ impl ModuleRegistry {
             .map(|m| m.name())
             .collect()
     }
-    
+
     /// Get list of all installed module names
     pub fn installed_modules(&self) -> Vec<&str> {
         self.modules
@@ -122,7 +130,7 @@ impl ModuleResult {
     pub fn is_success(&self) -> bool {
         self.result.is_ok()
     }
-    
+
     pub fn is_slow(&self, threshold_ms: u64) -> bool {
         self.duration_ms > threshold_ms
     }

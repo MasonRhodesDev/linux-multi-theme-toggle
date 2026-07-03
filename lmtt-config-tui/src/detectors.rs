@@ -1,5 +1,5 @@
-use schema_tui::OptionProvider;
 use anyhow::Result;
+use schema_tui::OptionProvider;
 
 pub struct GtkThemeDetector;
 
@@ -57,5 +57,8 @@ pub fn register_all(builder: schema_tui::SchemaTUIBuilder) -> schema_tui::Schema
         .register_option_provider("lmtt_cursor_themes", Box::new(CursorThemeDetector))
         .register_option_provider("lmtt_vscode_themes", Box::new(VSCodeThemeDetector))
         .register_option_provider("lmtt_fonts", Box::new(FontDetector))
-        .register_option_provider("lmtt_neovim_colorschemes", Box::new(NeovimColorschemeDetector))
+        .register_option_provider(
+            "lmtt_neovim_colorschemes",
+            Box::new(NeovimColorschemeDetector),
+        )
 }

@@ -6,7 +6,9 @@ version = 2
 yanked = "deny"
 # Add RUSTSEC IDs here (with a justifying comment) only if an advisory is
 # confirmed not to affect us and a fix isn't yet available.
-ignore = []
+ignore = [
+    { id = "RUSTSEC-2024-0436", reason = "paste is an unmaintained compile-time-only proc-macro; no runtime exposure" },
+]
 
 [licenses]
 version = 2

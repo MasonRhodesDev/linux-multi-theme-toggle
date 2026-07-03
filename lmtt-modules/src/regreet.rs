@@ -52,19 +52,39 @@ impl ThemeModule for RegreetModule {
         let css_path = lmtt_dir.join("regreet.css");
 
         // Default colors based on mode
-        let (default_surface, default_on_surface, default_primary, default_error, default_surface_container) =
-            if scheme.mode == ThemeMode::Dark {
-                ("#12131a", "#e3e1ec", "#9fd491", "#ffb4ab", "#1e1f26")
-            } else {
-                ("#fbf8ff", "#1a1b23", "#2d6a2f", "#ba1a1a", "#eef0e5")
-            };
+        let (
+            default_surface,
+            default_on_surface,
+            default_primary,
+            default_error,
+            default_surface_container,
+        ) = if scheme.mode == ThemeMode::Dark {
+            ("#12131a", "#e3e1ec", "#9fd491", "#ffb4ab", "#1e1f26")
+        } else {
+            ("#fbf8ff", "#1a1b23", "#2d6a2f", "#ba1a1a", "#eef0e5")
+        };
 
         // Get colors from scheme
-        let surface = scheme.get("surface").map(|s| s.as_str()).unwrap_or(default_surface);
-        let on_surface = scheme.get("on_surface").map(|s| s.as_str()).unwrap_or(default_on_surface);
-        let primary = scheme.get("primary").map(|s| s.as_str()).unwrap_or(default_primary);
-        let error = scheme.get("error").map(|s| s.as_str()).unwrap_or(default_error);
-        let surface_container = scheme.get("surface_container").map(|s| s.as_str()).unwrap_or(default_surface_container);
+        let surface = scheme
+            .get("surface")
+            .map(|s| s.as_str())
+            .unwrap_or(default_surface);
+        let on_surface = scheme
+            .get("on_surface")
+            .map(|s| s.as_str())
+            .unwrap_or(default_on_surface);
+        let primary = scheme
+            .get("primary")
+            .map(|s| s.as_str())
+            .unwrap_or(default_primary);
+        let error = scheme
+            .get("error")
+            .map(|s| s.as_str())
+            .unwrap_or(default_error);
+        let surface_container = scheme
+            .get("surface_container")
+            .map(|s| s.as_str())
+            .unwrap_or(default_surface_container);
 
         // Generate CSS
         let mut css = String::new();
@@ -78,7 +98,10 @@ impl ThemeModule for RegreetModule {
 
         // Semi-transparent background for main login container
         css.push_str("frame.background {\n");
-        css.push_str(&format!("    background-color: {};\n", Self::to_rgba(surface, 0.75)));
+        css.push_str(&format!(
+            "    background-color: {};\n",
+            Self::to_rgba(surface, 0.75)
+        ));
         css.push_str("    border-radius: 16px;\n");
         css.push_str("    padding: 24px;\n");
         css.push_str("}\n\n");
@@ -91,27 +114,42 @@ impl ThemeModule for RegreetModule {
 
         // Entry fields (password, username)
         css.push_str("entry {\n");
-        css.push_str(&format!("    background-color: {};\n", Self::to_rgba(surface_container, 0.6)));
+        css.push_str(&format!(
+            "    background-color: {};\n",
+            Self::to_rgba(surface_container, 0.6)
+        ));
         css.push_str("    border-radius: 8px;\n");
         css.push_str(&format!("    color: {};\n", on_surface));
         css.push_str("    padding: 8px 12px;\n");
         css.push_str("}\n\n");
 
         css.push_str("entry:focus {\n");
-        css.push_str(&format!("    background-color: {};\n", Self::to_rgba(surface_container, 0.8)));
-        css.push_str(&format!("    outline: 2px solid {};\n", Self::to_rgba(primary, 0.6)));
+        css.push_str(&format!(
+            "    background-color: {};\n",
+            Self::to_rgba(surface_container, 0.8)
+        ));
+        css.push_str(&format!(
+            "    outline: 2px solid {};\n",
+            Self::to_rgba(primary, 0.6)
+        ));
         css.push_str("}\n\n");
 
         // Dropdown selectors
         css.push_str("dropdown, combobox {\n");
-        css.push_str(&format!("    background-color: {};\n", Self::to_rgba(surface_container, 0.6)));
+        css.push_str(&format!(
+            "    background-color: {};\n",
+            Self::to_rgba(surface_container, 0.6)
+        ));
         css.push_str("    border-radius: 8px;\n");
         css.push_str(&format!("    color: {};\n", on_surface));
         css.push_str("}\n\n");
 
         // Login button
         css.push_str("button.suggested-action {\n");
-        css.push_str(&format!("    background-color: {};\n", Self::to_rgba(primary, 0.85)));
+        css.push_str(&format!(
+            "    background-color: {};\n",
+            Self::to_rgba(primary, 0.85)
+        ));
         css.push_str("    border-radius: 8px;\n");
         css.push_str("    color: white;\n");
         css.push_str("    padding: 8px 16px;\n");
@@ -123,12 +161,18 @@ impl ThemeModule for RegreetModule {
 
         // Power/Reboot buttons
         css.push_str("button.destructive-action {\n");
-        css.push_str(&format!("    background-color: {};\n", Self::to_rgba(error, 0.7)));
+        css.push_str(&format!(
+            "    background-color: {};\n",
+            Self::to_rgba(error, 0.7)
+        ));
         css.push_str("    border-radius: 8px;\n");
         css.push_str("}\n\n");
 
         css.push_str("button.destructive-action:hover {\n");
-        css.push_str(&format!("    background-color: {};\n", Self::to_rgba(error, 0.9)));
+        css.push_str(&format!(
+            "    background-color: {};\n",
+            Self::to_rgba(error, 0.9)
+        ));
         css.push_str("}\n");
 
         tokio::fs::write(&css_path, css).await?;

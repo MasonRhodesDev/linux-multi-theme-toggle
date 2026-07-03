@@ -4,7 +4,7 @@ use schema_tui::OptionProvider;
 fn main() {
     println!("Testing LMTT Option Detectors\n");
     println!("==============================\n");
-    
+
     println!("GTK Themes:");
     match GtkThemeDetector.get_options() {
         Ok(themes) => {
@@ -18,7 +18,7 @@ fn main() {
         }
         Err(e) => println!("  Error: {}", e),
     }
-    
+
     println!("\nIcon Themes:");
     match IconThemeDetector.get_options() {
         Ok(themes) => {
@@ -32,7 +32,7 @@ fn main() {
         }
         Err(e) => println!("  Error: {}", e),
     }
-    
+
     println!("\nFonts:");
     match FontDetector.get_options() {
         Ok(fonts) => {
@@ -46,7 +46,7 @@ fn main() {
         }
         Err(e) => println!("  Error: {}", e),
     }
-    
+
     println!("\nVSCode Themes:");
     match VSCodeThemeDetector.get_options() {
         Ok(themes) => {
@@ -60,6 +60,6 @@ fn main() {
         }
         Err(e) => println!("  Error: {}", e),
     }
-    
+
     println!("\nAll detectors working! ✓");
 }

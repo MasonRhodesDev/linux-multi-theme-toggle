@@ -1,9 +1,13 @@
-use lmtt_core::{Config, ThemeMode, ColorScheme, Result, Error};
 use lmtt_core::cache::Cache;
+use lmtt_core::{ColorScheme, Config, Error, Result, ThemeMode};
 use std::path::Path;
 
 /// Generate color scheme using matugen, custom colors, or fallback
-pub async fn generate_colors(config: &Config, mode: ThemeMode, cache: Option<&Cache>) -> Result<ColorScheme> {
+pub async fn generate_colors(
+    config: &Config,
+    mode: ThemeMode,
+    cache: Option<&Cache>,
+) -> Result<ColorScheme> {
     let mut scheme = ColorScheme::new(mode);
 
     // Try default colors first
@@ -15,7 +19,10 @@ pub async fn generate_colors(config: &Config, mode: ThemeMode, cache: Option<&Ca
     let default_path_buf = std::path::PathBuf::from(default_path);
 
     if default_path_buf.exists() {
-        tracing::info!("Using default color scheme from {}", default_path_buf.display());
+        tracing::info!(
+            "Using default color scheme from {}",
+            default_path_buf.display()
+        );
         let colors = load_custom_colors(&default_path_buf).await?;
         for (key, value) in colors {
             scheme.set(key, value);
@@ -49,7 +56,8 @@ pub async fn generate_colors(config: &Config, mode: ThemeMode, cache: Option<&Ca
 
 /// Load custom colors from JSON file
 async fn load_custom_colors(path: &Path) -> Result<std::collections::HashMap<String, String>> {
-    let content = tokio::fs::read_to_string(path).await
+    let content = tokio::fs::read_to_string(path)
+        .await
         .map_err(|e| Error::Config(format!("Failed to read custom colors: {}", e)))?;
 
     let json: serde_json::Value = serde_json::from_str(&content)
@@ -76,7 +84,11 @@ fn fallback_colors(mode: ThemeMode) -> std::collections::HashMap<String, String>
 }
 
 /// Generate colors using matugen
-async fn generate_with_matugen(config: &Config, mode: ThemeMode, cache: Option<&Cache>) -> Result<std::collections::HashMap<String, String>> {
+async fn generate_with_matugen(
+    config: &Config,
+    mode: ThemeMode,
+    cache: Option<&Cache>,
+) -> Result<std::collections::HashMap<String, String>> {
     let wallpaper = &config.general.wallpaper;
     let scheme_type = &config.general.scheme_type;
     let mode_str = mode.to_string();
@@ -84,13 +96,19 @@ async fn generate_with_matugen(config: &Config, mode: ThemeMode, cache: Option<&
 
     // Check if wallpaper exists
     if !wallpaper_path.exists() {
-        tracing::warn!("Wallpaper not found: {}, falling back to default colors", wallpaper);
+        tracing::warn!(
+            "Wallpaper not found: {}, falling back to default colors",
+            wallpaper
+        );
         return Ok(fallback_colors(mode));
     }
 
     // Check color cache
     if let Some(cache) = cache {
-        match cache.get_cached_colors(wallpaper_path, &mode_str, scheme_type).await {
+        match cache
+            .get_cached_colors(wallpaper_path, &mode_str, scheme_type)
+            .await
+        {
             Ok(Some(colors)) => {
                 tracing::info!("Using cached colors for {} mode", mode_str);
                 return Ok(colors);
@@ -132,14 +150,20 @@ async fn generate_with_matugen(config: &Config, mode: ThemeMode, cache: Option<&
         Ok(colors) => {
             // Write to cache on success
             if let Some(cache) = cache {
-                if let Err(e) = cache.set_cached_colors(wallpaper_path, &mode_str, scheme_type, &colors).await {
+                if let Err(e) = cache
+                    .set_cached_colors(wallpaper_path, &mode_str, scheme_type, &colors)
+                    .await
+                {
                     tracing::debug!("Failed to cache colors: {}", e);
                 }
             }
             Ok(colors)
         }
         Err(e) => {
-            tracing::warn!("Failed to parse matugen output: {}, falling back to default colors", e);
+            tracing::warn!(
+                "Failed to parse matugen output: {}, falling back to default colors",
+                e
+            );
             Ok(fallback_colors(mode))
         }
     }

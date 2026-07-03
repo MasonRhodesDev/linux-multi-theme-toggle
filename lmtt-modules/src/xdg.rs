@@ -1,4 +1,4 @@
-use crate::{ThemeModule, ConfigFileInfo};
+use crate::{ConfigFileInfo, ThemeModule};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result, ThemeMode};
 
@@ -83,8 +83,14 @@ impl ThemeModule for XdgModule {
         {
             Ok(output) if output.status.success() => {
                 let stdout = String::from_utf8_lossy(&output.stdout);
-                if stdout.lines().any(|line| line.contains(&format!("uint32 {}", expected_value))) {
-                    tracing::info!("[XDG] Portal reports correct value ({}), signal emitted by portal", expected_value);
+                if stdout
+                    .lines()
+                    .any(|line| line.contains(&format!("uint32 {}", expected_value)))
+                {
+                    tracing::info!(
+                        "[XDG] Portal reports correct value ({}), signal emitted by portal",
+                        expected_value
+                    );
                 } else {
                     tracing::warn!("[XDG] Portal still reports stale value — apps may not have received signal");
                     tracing::debug!("[XDG] Portal ReadOne output: {}", stdout.trim());

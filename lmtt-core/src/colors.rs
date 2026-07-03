@@ -3,18 +3,18 @@ use std::collections::HashMap;
 /// Convert hex color to RGB tuple (0-255)
 pub fn hex_to_rgb(hex: &str) -> Result<(u8, u8, u8), String> {
     let hex = hex.trim_start_matches('#');
-    
+
     if hex.len() != 6 {
         return Err(format!("Invalid hex color: {}", hex));
     }
-    
-    let r = u8::from_str_radix(&hex[0..2], 16)
-        .map_err(|_| format!("Invalid hex color: {}", hex))?;
-    let g = u8::from_str_radix(&hex[2..4], 16)
-        .map_err(|_| format!("Invalid hex color: {}", hex))?;
-    let b = u8::from_str_radix(&hex[4..6], 16)
-        .map_err(|_| format!("Invalid hex color: {}", hex))?;
-    
+
+    let r =
+        u8::from_str_radix(&hex[0..2], 16).map_err(|_| format!("Invalid hex color: {}", hex))?;
+    let g =
+        u8::from_str_radix(&hex[2..4], 16).map_err(|_| format!("Invalid hex color: {}", hex))?;
+    let b =
+        u8::from_str_radix(&hex[4..6], 16).map_err(|_| format!("Invalid hex color: {}", hex))?;
+
     Ok((r, g, b))
 }
 
@@ -26,28 +26,24 @@ pub fn rgb_to_kde_string(r: u8, g: u8, b: u8) -> String {
 /// Convert hex to sRGB tuple (0.0-1.0) for XDG portal
 pub fn hex_to_srgb_tuple(hex: &str) -> Result<(f64, f64, f64), String> {
     let (r, g, b) = hex_to_rgb(hex)?;
-    
-    Ok((
-        r as f64 / 255.0,
-        g as f64 / 255.0,
-        b as f64 / 255.0,
-    ))
+
+    Ok((r as f64 / 255.0, g as f64 / 255.0, b as f64 / 255.0))
 }
 
 /// Map Material You color to closest gsettings accent-color enum
 pub fn map_to_accent_color(hex: &str) -> Result<String, String> {
     let (r, g, b) = hex_to_rgb(hex)?;
-    
+
     // Find dominant channel
     let max = r.max(g).max(b);
     let min = r.min(g).min(b);
     let saturation = max.saturating_sub(min);
-    
+
     // Low saturation = slate
     if saturation < 30 {
         return Ok("slate".to_string());
     }
-    
+
     // Map based on hue
     if r >= g && r >= b {
         // Red dominant
@@ -84,8 +80,8 @@ pub fn map_to_accent_color(hex: &str) -> Result<String, String> {
 /// - v3 actual: { "colors": { "dark": { "primary": "#xxx", ... }, "light": { ... } } }
 /// - v3 legacy:  { "colors": { "primary": { "dark": "#xxx", "light": "#yyy" }, ... } }
 pub fn parse_matugen_colors(json: &str, mode: &str) -> Result<HashMap<String, String>, String> {
-    let value: serde_json::Value = serde_json::from_str(json)
-        .map_err(|e| format!("Failed to parse matugen JSON: {}", e))?;
+    let value: serde_json::Value =
+        serde_json::from_str(json).map_err(|e| format!("Failed to parse matugen JSON: {}", e))?;
 
     let colors = value
         .get("colors")
