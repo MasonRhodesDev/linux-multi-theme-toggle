@@ -1,8 +1,10 @@
-# Makefile for linux-matugen-theme-toggle (lmtt)
+# Makefile for linux-multi-theme-toggle (lmtt)
 
 # Project metadata
 PROJECT = lmtt
-VERSION = 0.1.0
+CONFIG_BIN = lmtt-config
+# Cargo.toml (workspace.package) is the single source of truth for the version.
+VERSION := $(shell sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
 CARGO = cargo
 INSTALL = install
 PREFIX ?= /usr/local
@@ -87,11 +89,16 @@ clean:
 	rm -rf dist/
 	@echo "$(GREEN)✓ Cleaned$(RESET)"
 
-# Install binary and config example
+# Install binaries, config example, and custom-module examples
 install: release
 	@echo "$(BOLD)Installing $(PROJECT)...$(RESET)"
 	$(INSTALL) -Dm755 $(TARGET_DIR)/$(PROJECT) $(DESTDIR)$(BINDIR)/$(PROJECT)
+	$(INSTALL) -Dm755 $(TARGET_DIR)/$(CONFIG_BIN) $(DESTDIR)$(BINDIR)/$(CONFIG_BIN)
 	$(INSTALL) -Dm644 config-example.toml $(DESTDIR)$(DATADIR)/$(PROJECT)/config-example.toml
+	$(INSTALL) -Dm644 examples/README-modules.md examples/colors-dark.json \
+		examples/colors-light.json -t $(DESTDIR)$(DATADIR)/$(PROJECT)/examples
+	$(INSTALL) -Dm644 examples/modules/*.toml -t $(DESTDIR)$(DATADIR)/$(PROJECT)/examples/modules
+	$(INSTALL) -Dm755 examples/scripts/*.sh -t $(DESTDIR)$(DATADIR)/$(PROJECT)/examples/scripts
 	$(INSTALL) -Dm644 README.md $(DESTDIR)$(DATADIR)/doc/$(PROJECT)/README.md
 	@echo "$(GREEN)✓ Installed to $(DESTDIR)$(BINDIR)/$(PROJECT)$(RESET)"
 	@echo ""
@@ -105,6 +112,7 @@ install: release
 uninstall:
 	@echo "$(BOLD)Uninstalling $(PROJECT)...$(RESET)"
 	rm -f $(DESTDIR)$(BINDIR)/$(PROJECT)
+	rm -f $(DESTDIR)$(BINDIR)/$(CONFIG_BIN)
 	rm -rf $(DESTDIR)$(DATADIR)/$(PROJECT)
 	rm -rf $(DESTDIR)$(DATADIR)/doc/$(PROJECT)
 	@echo "$(GREEN)✓ Uninstalled$(RESET)"
@@ -162,6 +170,7 @@ install-user: release
 	@echo "$(BOLD)Installing to ~/.local/bin...$(RESET)"
 	@mkdir -p ~/.local/bin
 	$(INSTALL) -m755 $(TARGET_DIR)/$(PROJECT) ~/.local/bin/$(PROJECT)
+	$(INSTALL) -m755 $(TARGET_DIR)/$(CONFIG_BIN) ~/.local/bin/$(CONFIG_BIN)
 	@echo "$(GREEN)✓ Installed to ~/.local/bin/$(PROJECT)$(RESET)"
 	@echo ""
 	@echo "$(YELLOW)Make sure ~/.local/bin is in your PATH$(RESET)"
@@ -172,6 +181,7 @@ install-user: release
 uninstall-user:
 	@echo "$(BOLD)Uninstalling from ~/.local/bin...$(RESET)"
 	rm -f ~/.local/bin/$(PROJECT)
+	rm -f ~/.local/bin/$(CONFIG_BIN)
 	@echo "$(GREEN)✓ Uninstalled$(RESET)"
 
 # Help target
