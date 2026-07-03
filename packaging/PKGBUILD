@@ -1,0 +1,60 @@
+# Maintainer: Mason Rhodes <mrhodesdev@gmail.com>
+#
+# Arch package for lmtt (Linux Multi-Theme Toggle). Same payload as the
+# Fedora RPM (packaging/lmtt.spec); all paths are identical across both
+# distros. Usable directly with makepkg from this directory after a release
+# tag is pushed, or published to the AUR (regenerate .SRCINFO with
+# `makepkg --printsrcinfo > .SRCINFO` on every change).
+
+pkgname=lmtt
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Linux Multi-Theme Toggle - fast async theme switching for Hyprland/Wayland"
+arch=('x86_64')
+url="https://github.com/MasonRhodesDev/linux-multi-theme-toggle"
+license=('MIT')
+depends=('gcc-libs')
+# git: schema-tui is a git dependency and .cargo/config.toml sets
+# git-fetch-with-cli, so cargo fetch shells out to the git binary.
+makedepends=('cargo' 'git')
+optdepends=('matugen: Material You color generation from wallpapers')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP') # pin on release: updpkgsums
+
+prepare() {
+  # GitHub archive tarballs extract to linux-multi-theme-toggle-$pkgver/,
+  # while the CI HEAD snapshot (and build-srpm.sh) use a $pkgname-$pkgver/
+  # prefix. Normalize so the remaining functions see one layout.
+  if [[ -d "linux-multi-theme-toggle-$pkgver" && ! -d "$pkgname-$pkgver" ]]; then
+    mv "linux-multi-theme-toggle-$pkgver" "$pkgname-$pkgver"
+  fi
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --frozen --release
+}
+
+check() {
+  cd "$pkgname-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo test --frozen --release
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  install -Dm755 target/release/lmtt "$pkgdir/usr/bin/lmtt"
+  install -Dm755 target/release/lmtt-config "$pkgdir/usr/bin/lmtt-config"
+  install -Dm644 config-example.toml "$pkgdir/usr/share/$pkgname/config-example.toml"
+  install -Dm644 examples/README-modules.md examples/colors-dark.json \
+    examples/colors-light.json -t "$pkgdir/usr/share/$pkgname/examples"
+  install -Dm644 examples/modules/*.toml -t "$pkgdir/usr/share/$pkgname/examples/modules"
+  install -Dm755 examples/scripts/*.sh -t "$pkgdir/usr/share/$pkgname/examples/scripts"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

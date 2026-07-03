@@ -1,0 +1,13 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    uses: MasonRhodesDev/packaging-workflows/.github/workflows/release.yml@main
+    secrets: inherit

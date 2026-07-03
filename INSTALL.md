@@ -1,16 +1,32 @@
 # LMTT Installation
 
-## Quick Install
+## Arch Linux
 
-```bash
-./install.sh
+Add the `[mason]` repo to `/etc/pacman.conf`, then install:
+
+```ini
+[mason]
+SigLevel = Optional TrustAll
+Server = https://masonrhodesdev.github.io/arch-repo/x86_64
 ```
 
-## Manual Install
+```bash
+sudo pacman -Sy lmtt
+```
+
+## Fedora
 
 ```bash
-cargo build --release
-cp target/release/lmtt ~/.local/bin/lmtt
+sudo dnf copr enable solaris765/lmtt
+sudo dnf install lmtt
+```
+
+## Build from Source
+
+```bash
+git clone https://github.com/MasonRhodesDev/linux-multi-theme-toggle.git
+cd linux-multi-theme-toggle
+sudo make install PREFIX=/usr
 ```
 
 ## Usage

@@ -1,0 +1,16 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    # Pure-Rust workspace (zbus is a native-Rust D-Bus implementation) — no
+    # extra pacman-deps needed beyond the workflow's base toolchain.
+    uses: MasonRhodesDev/packaging-workflows/.github/workflows/rust-ci.yml@main
