@@ -1,4 +1,4 @@
-use crate::{ConfigFileInfo, ThemeModule};
+use crate::{ThemeModule, ConfigFileInfo};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result};
 
@@ -6,10 +6,21 @@ crate::register_module!(FishModule);
 
 pub struct FishModule;
 
+impl Default for FishModule {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FishModule {
     pub fn new() -> Self {
         Self
     }
+}
+
+/// fish color values are RRGGBB without the leading '#'
+fn fish_hex(color: &str) -> String {
+    color.trim_start_matches('#').to_string()
 }
 
 #[async_trait]
@@ -23,78 +34,71 @@ impl ThemeModule for FishModule {
     }
 
     async fn apply(&self, scheme: &ColorScheme, _config: &Config) -> Result<()> {
-        let colors_file = dirs::config_dir()
+        // Universal variables (set -U) propagate to every RUNNING fish shell
+        // instantly — a conf.d file with set -g only affects new shells, and
+        // no signal makes fish re-source conf.d.
+        let assignments: Vec<(&str, String)> = vec![
+            ("fish_color_normal", fish_hex(&scheme.get_or_fallback("on_surface"))),
+            ("fish_color_command", fish_hex(&scheme.get_or_fallback("primary"))),
+            ("fish_color_param", fish_hex(&scheme.get_or_fallback("on_surface"))),
+            ("fish_color_redirection", fish_hex(&scheme.get_or_fallback("secondary"))),
+            ("fish_color_comment", fish_hex(&scheme.get_or_fallback("outline"))),
+            ("fish_color_error", fish_hex(&scheme.get_or_fallback("error"))),
+            ("fish_color_escape", fish_hex(&scheme.get_or_fallback("tertiary"))),
+            ("fish_color_operator", fish_hex(&scheme.get_or_fallback("primary"))),
+            ("fish_color_quote", fish_hex(&scheme.get_or_fallback("secondary"))),
+            ("fish_color_autosuggestion", fish_hex(&scheme.get_or_fallback("outline"))),
+            ("fish_pager_color_completion", fish_hex(&scheme.get_or_fallback("on_surface"))),
+            ("fish_pager_color_description", fish_hex(&scheme.get_or_fallback("on_surface_variant"))),
+            ("fish_pager_color_prefix", fish_hex(&scheme.get_or_fallback("primary"))),
+            ("fish_pager_color_progress", fish_hex(&scheme.get_or_fallback("outline"))),
+        ];
+
+        let mut script = String::new();
+        for (var, value) in &assignments {
+            script.push_str(&format!("set -U {} {}\n", var, value));
+        }
+        script.push_str(&format!(
+            "set -U fish_color_selection --background={}\n",
+            fish_hex(&scheme.get_or_fallback("primary_container"))
+        ));
+        script.push_str(&format!(
+            "set -U fish_color_search_match --background={}\n",
+            fish_hex(&scheme.get_or_fallback("tertiary_container"))
+        ));
+        script.push_str(&format!(
+            "set -U fish_pager_color_selected_background --background={}\n",
+            fish_hex(&scheme.get_or_fallback("surface_container_high"))
+        ));
+
+        // NOT --no-config: fish skips the universal variable store entirely
+        // in that mode, so set -U would silently not persist.
+        let output = tokio::process::Command::new("fish")
+            .args(["-c", &script])
+            .output()
+            .await
+            .map_err(|e| lmtt_core::Error::Module(format!("fish failed to run: {}", e)))?;
+
+        if !output.status.success() {
+            return Err(lmtt_core::Error::Module(format!(
+                "fish color update failed: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            )));
+        }
+
+        // Remove the legacy conf.d file from the old set -g approach — its
+        // startup-time globals would fight the universal variables.
+        let legacy = dirs::config_dir()
             .ok_or(lmtt_core::Error::Config("No config dir".into()))?
             .join("fish")
             .join("conf.d")
             .join("lmtt-colors.fish");
-
-        if let Some(parent) = colors_file.parent() {
-            tokio::fs::create_dir_all(parent).await?;
+        if legacy.exists() {
+            let _ = tokio::fs::remove_file(&legacy).await;
+            tracing::info!("[Fish] Removed legacy conf.d/lmtt-colors.fish (colors now universal variables)");
         }
 
-        let default_fg = "#e3e1ec".to_string();
-        let default_primary = "#9fd491".to_string();
-        let default_secondary = "#edb8cd".to_string();
-        let default_outline = "#8f909f".to_string();
-        let default_error = "#ffb4ab".to_string();
-        let default_tertiary = "#bbc3fa".to_string();
-        let default_tertiary_container = "#3b4472".to_string();
-        let default_surface_container_high = "#292931".to_string();
-
-        let on_surface = scheme.get("on_surface").unwrap_or(&default_fg);
-        let primary = scheme.get("primary").unwrap_or(&default_primary);
-        let secondary = scheme.get("secondary").unwrap_or(&default_secondary);
-        let outline = scheme.get("outline").unwrap_or(&default_outline);
-        let error = scheme.get("error").unwrap_or(&default_error);
-        let on_surface_variant = scheme.get("on_surface_variant").unwrap_or(&default_fg);
-        let primary_container = scheme.get("primary_container").unwrap_or(&default_primary);
-        let tertiary = scheme.get("tertiary").unwrap_or(&default_tertiary);
-        let tertiary_container = scheme
-            .get("tertiary_container")
-            .unwrap_or(&default_tertiary_container);
-        let surface_container_high = scheme
-            .get("surface_container_high")
-            .unwrap_or(&default_surface_container_high);
-
-        let mut content = String::new();
-        content.push_str("# Fish shell colors generated by lmtt\n\n");
-        content.push_str(&format!("set -g fish_color_normal '{}'\n", on_surface));
-        content.push_str(&format!("set -g fish_color_command '{}'\n", primary));
-        content.push_str(&format!("set -g fish_color_param '{}'\n", on_surface));
-        content.push_str(&format!("set -g fish_color_redirection '{}'\n", secondary));
-        content.push_str(&format!("set -g fish_color_comment '{}'\n", outline));
-        content.push_str(&format!("set -g fish_color_error '{}'\n", error));
-        content.push_str(&format!("set -g fish_color_escape '{}'\n", tertiary));
-        content.push_str(&format!("set -g fish_color_operator '{}'\n", primary));
-        content.push_str(&format!("set -g fish_color_quote '{}'\n", secondary));
-        content.push_str(&format!("set -g fish_color_autosuggestion '{}'\n", outline));
-        content.push_str(&format!(
-            "set -g fish_color_selection --background='{}'\n",
-            primary_container
-        ));
-        content.push_str(&format!(
-            "set -g fish_color_search_match --background='{}'\n",
-            tertiary_container
-        ));
-        content.push_str(&format!(
-            "set -g fish_pager_color_completion '{}'\n",
-            on_surface
-        ));
-        content.push_str(&format!(
-            "set -g fish_pager_color_description '{}'\n",
-            on_surface_variant
-        ));
-        content.push_str(&format!("set -g fish_pager_color_prefix '{}'\n", primary));
-        content.push_str(&format!("set -g fish_pager_color_progress '{}'\n", outline));
-        content.push_str(&format!(
-            "set -g fish_pager_color_selected_background --background='{}'\n",
-            surface_container_high
-        ));
-
-        tokio::fs::write(&colors_file, content).await?;
-
-        tracing::info!("[Fish] Updated colors at {}", colors_file.display());
+        tracing::info!("[Fish] Updated colors via universal variables (live shells included)");
 
         Ok(())
     }

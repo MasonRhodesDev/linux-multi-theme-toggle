@@ -1,11 +1,17 @@
-use crate::{ConfigFileInfo, ThemeModule};
+use crate::{ThemeModule, ConfigFileInfo};
 use async_trait::async_trait;
-use lmtt_core::{ColorScheme, Config, Result};
+use lmtt_core::{ColorScheme, Config, Result, ThemeMode};
 use serde_json::{Map, Value};
 
 crate::register_module!(HyprPanelModule);
 
 pub struct HyprPanelModule;
+
+impl Default for HyprPanelModule {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl HyprPanelModule {
     pub fn new() -> Self {
@@ -24,24 +30,11 @@ impl ThemeModule for HyprPanelModule {
     }
 
     async fn apply(&self, scheme: &ColorScheme, _config: &Config) -> Result<()> {
-        if which::which("swaync").is_ok() {
-            tracing::debug!("[HyprPanel] SwayNC installed, giving it priority");
-
-            if let Ok(output) = tokio::process::Command::new("pgrep")
-                .arg("-x")
-                .arg("hyprpanel")
-                .output()
-                .await
-            {
-                if output.status.success() {
-                    tokio::process::Command::new("pkill")
-                        .arg("hyprpanel")
-                        .output()
-                        .await
-                        .ok();
-                    tracing::info!("[HyprPanel] Stopped to prevent conflicts with SwayNC");
-                }
-            }
+        // Only defer to swaync when it's the daemon actually RUNNING — the
+        // swaync binary being merely installed (a common dependency) must not
+        // leave a running hyprpanel stuck in the wrong theme.
+        if process_running("swaync").await {
+            tracing::debug!("[HyprPanel] SwayNC is running; skipping hyprpanel theming");
             return Ok(());
         }
 
@@ -54,43 +47,50 @@ impl ThemeModule for HyprPanelModule {
             return Ok(());
         }
 
-        let is_light = scheme.get("mode").map(|m| m == "light").unwrap_or(false);
-        let mode = if is_light { "light" } else { "dark" };
+        let mode = match scheme.mode {
+            ThemeMode::Light => "light",
+            ThemeMode::Dark => "dark",
+        };
 
         let content = tokio::fs::read_to_string(&config_file).await?;
-        let mut json: Map<String, Value> = serde_json::from_str(&content).unwrap_or_default();
+        // A parse failure must abort: falling back to an empty map and
+        // writing it back would replace the user's entire config.
+        let mut json: Map<String, Value> = serde_json::from_str(&content).map_err(|e| {
+            lmtt_core::Error::Module(format!(
+                "Refusing to rewrite unparseable {}: {}",
+                config_file.display(),
+                e
+            ))
+        })?;
 
-        json.insert(
-            "theme.matugen_settings.mode".to_string(),
-            Value::String(mode.to_string()),
-        );
+        json.insert("theme.matugen_settings.mode".to_string(), Value::String(mode.to_string()));
 
         let new_content = serde_json::to_string_pretty(&json)?;
-        tokio::fs::write(&config_file, new_content).await?;
+        lmtt_core::fsutil::write_atomic(&config_file, new_content).await?;
 
-        if let Ok(output) = tokio::process::Command::new("pgrep")
-            .arg("-x")
-            .arg("hyprpanel")
-            .output()
-            .await
-        {
-            if output.status.success() {
-                tokio::process::Command::new("pkill")
-                    .arg("hyprpanel")
-                    .output()
-                    .await
-                    .ok();
+        if process_running("hyprpanel").await {
+            // Exact-match kill only: a bare `pkill hyprpanel` pattern-matches
+            // any process whose name contains the string.
+            let _ = tokio::process::Command::new("pkill")
+                .args(["-x", "hyprpanel"])
+                .output()
+                .await;
 
-                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-
-                tokio::process::Command::new("hyprpanel")
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .spawn()
-                    .ok();
-
-                tracing::info!("[HyprPanel] Restarted with {} theme", mode);
+            // Wait for the old instance to actually exit (bounded), then
+            // respawn detached so it isn't a child of this short-lived process.
+            let deadline = tokio::time::Instant::now() + tokio::time::Duration::from_secs(2);
+            while process_running("hyprpanel").await && tokio::time::Instant::now() < deadline {
+                tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
             }
+
+            tokio::process::Command::new("hyprpanel")
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .process_group(0)
+                .spawn()
+                .map_err(|e| lmtt_core::Error::Module(format!("Failed to restart hyprpanel: {}", e)))?;
+
+            tracing::info!("[HyprPanel] Restarted with {} theme", mode);
         }
 
         Ok(())
@@ -99,4 +99,13 @@ impl ThemeModule for HyprPanelModule {
     async fn config_files(&self) -> Result<Vec<ConfigFileInfo>> {
         Ok(vec![])
     }
+}
+
+async fn process_running(name: &str) -> bool {
+    tokio::process::Command::new("pgrep")
+        .args(["-x", name])
+        .output()
+        .await
+        .map(|o| o.status.success())
+        .unwrap_or(false)
 }

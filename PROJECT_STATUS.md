@@ -26,9 +26,9 @@
 - [x] Prompts user to inject config includes
 - [x] Adds marked blocks for clean removal:
   ```
-  # >>> lmtt managed block - do not edit manually >>>
+  /* >>> lmtt managed block - do not edit manually >>> */
   @import url('../matugen/lmtt-colors.css');
-  # <<< lmtt managed block <<<
+  /* <<< lmtt managed block <<< */
   ```
 - [x] Interactive Y/n/q prompts
 - [x] Dry-run mode to preview changes
@@ -70,7 +70,7 @@
 - [ ] Fish
 - [ ] Electron apps
 
-### Event System
+### Event System (future idea — not implemented)
 - [ ] Event broadcaster (Unix socket)
 - [ ] Notification service (D-Bus)
 - [ ] Event types: switch_started, switch_completed, switch_failed
@@ -100,7 +100,7 @@
 ## 📊 Current State
 
 ```
-linux-matugen-theme-toggle/
+linux-multi-theme-toggle/
 ├── lmtt/                     ✅ CLI complete
 │   ├── src/
 │   │   ├── main.rs          ✅ All commands implemented
@@ -138,7 +138,7 @@ linux-matugen-theme-toggle/
 2. Test compilation (`cargo build`)
 3. Test basic functionality (init, setup, switch)
 
-### Priority 2: Event System
+### Priority 2: Event System (future idea — not implemented)
 4. Implement event broadcaster
 5. Implement notification service
 6. Add event socket to CLI

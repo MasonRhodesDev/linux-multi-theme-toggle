@@ -1,77 +1,33 @@
 use std::collections::HashMap;
 
-/// Convert hex color to RGB tuple (0-255)
-pub fn hex_to_rgb(hex: &str) -> Result<(u8, u8, u8), String> {
-    let hex = hex.trim_start_matches('#');
+/// Whether a string is a syntactically valid hex color: optional leading '#'
+/// then exactly 3, 6, or 8 hex digits and nothing else. This is the trust
+/// boundary for color values — they get interpolated into shell scripts
+/// (`fish -c`), Lua, and terminal escape sequences, so anything that isn't a
+/// bare hex color must be rejected before it reaches those sinks.
+pub fn is_hex_color(value: &str) -> bool {
+    let digits = value.strip_prefix('#').unwrap_or(value);
+    matches!(digits.len(), 3 | 6 | 8) && digits.bytes().all(|b| b.is_ascii_hexdigit())
+}
 
-    if hex.len() != 6 {
+/// Convert hex color to RGB tuple (0-255).
+/// Accepts #rgb, #rrggbb, and #rrggbbaa (alpha ignored).
+pub fn hex_to_rgb(hex: &str) -> Result<(u8, u8, u8), String> {
+    let digits = hex.trim_start_matches('#');
+
+    if !digits.is_ascii() {
         return Err(format!("Invalid hex color: {}", hex));
     }
 
-    let r =
-        u8::from_str_radix(&hex[0..2], 16).map_err(|_| format!("Invalid hex color: {}", hex))?;
-    let g =
-        u8::from_str_radix(&hex[2..4], 16).map_err(|_| format!("Invalid hex color: {}", hex))?;
-    let b =
-        u8::from_str_radix(&hex[4..6], 16).map_err(|_| format!("Invalid hex color: {}", hex))?;
+    let parse = |s: &str| u8::from_str_radix(s, 16).map_err(|_| format!("Invalid hex color: {}", hex));
 
-    Ok((r, g, b))
-}
-
-/// Convert RGB to comma-separated string for KDE
-pub fn rgb_to_kde_string(r: u8, g: u8, b: u8) -> String {
-    format!("{},{},{}", r, g, b)
-}
-
-/// Convert hex to sRGB tuple (0.0-1.0) for XDG portal
-pub fn hex_to_srgb_tuple(hex: &str) -> Result<(f64, f64, f64), String> {
-    let (r, g, b) = hex_to_rgb(hex)?;
-
-    Ok((r as f64 / 255.0, g as f64 / 255.0, b as f64 / 255.0))
-}
-
-/// Map Material You color to closest gsettings accent-color enum
-pub fn map_to_accent_color(hex: &str) -> Result<String, String> {
-    let (r, g, b) = hex_to_rgb(hex)?;
-
-    // Find dominant channel
-    let max = r.max(g).max(b);
-    let min = r.min(g).min(b);
-    let saturation = max.saturating_sub(min);
-
-    // Low saturation = slate
-    if saturation < 30 {
-        return Ok("slate".to_string());
-    }
-
-    // Map based on hue
-    if r >= g && r >= b {
-        // Red dominant
-        if g > b + 30 {
-            Ok("orange".to_string())
-        } else if b > g + 30 {
-            Ok("pink".to_string())
-        } else {
-            Ok("red".to_string())
+    match digits.len() {
+        3 => {
+            let expand = |s: &str| parse(s).map(|v| v * 17); // "a" -> 0xaa
+            Ok((expand(&digits[0..1])?, expand(&digits[1..2])?, expand(&digits[2..3])?))
         }
-    } else if g >= r && g >= b {
-        // Green dominant
-        if b > r + 20 {
-            Ok("teal".to_string())
-        } else if r > b + 20 {
-            Ok("yellow".to_string())
-        } else {
-            Ok("green".to_string())
-        }
-    } else {
-        // Blue dominant
-        if r > g + 20 {
-            Ok("purple".to_string())
-        } else if g > r + 20 {
-            Ok("teal".to_string())
-        } else {
-            Ok("blue".to_string())
-        }
+        6 | 8 => Ok((parse(&digits[0..2])?, parse(&digits[2..4])?, parse(&digits[4..6])?)),
+        _ => Err(format!("Invalid hex color: {}", hex)),
     }
 }
 
@@ -80,8 +36,8 @@ pub fn map_to_accent_color(hex: &str) -> Result<String, String> {
 /// - v3 actual: { "colors": { "dark": { "primary": "#xxx", ... }, "light": { ... } } }
 /// - v3 legacy:  { "colors": { "primary": { "dark": "#xxx", "light": "#yyy" }, ... } }
 pub fn parse_matugen_colors(json: &str, mode: &str) -> Result<HashMap<String, String>, String> {
-    let value: serde_json::Value =
-        serde_json::from_str(json).map_err(|e| format!("Failed to parse matugen JSON: {}", e))?;
+    let value: serde_json::Value = serde_json::from_str(json)
+        .map_err(|e| format!("Failed to parse matugen JSON: {}", e))?;
 
     let colors = value
         .get("colors")
@@ -119,6 +75,19 @@ pub fn parse_matugen_colors(json: &str, mode: &str) -> Result<HashMap<String, St
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_hex_to_rgb_forms() {
+        assert_eq!(hex_to_rgb("#ffb77a").unwrap(), (0xff, 0xb7, 0x7a));
+        assert_eq!(hex_to_rgb("ffb77a").unwrap(), (0xff, 0xb7, 0x7a));
+        assert_eq!(hex_to_rgb("#abc").unwrap(), (0xaa, 0xbb, 0xcc));
+        assert_eq!(hex_to_rgb("#ffb77a80").unwrap(), (0xff, 0xb7, 0x7a));
+        assert!(hex_to_rgb("#xyz").is_err());
+        assert!(hex_to_rgb("#ffff").is_err());
+        // Multibyte input must error, not panic on byte slicing
+        assert!(hex_to_rgb("€€").is_err());
+        assert!(hex_to_rgb("#€€€€€€").is_err());
+    }
 
     #[test]
     fn test_parse_v3_actual_format() {

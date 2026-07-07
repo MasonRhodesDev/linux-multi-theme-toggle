@@ -8,7 +8,6 @@ priority = 100
 
 [output]
 path = "~/.config/kitty/lmtt-colors.conf"
-format = "conf"
 
 [template]
 content = """

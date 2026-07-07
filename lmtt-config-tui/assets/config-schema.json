@@ -63,7 +63,7 @@
               "scheme-vibrant"
             ]
           },
-          "default": "scheme-expressive",
+          "default": "scheme-tonal-spot",
           "ui_widget": "dropdown",
           "subsection": "Matugen"
         },
@@ -121,7 +121,7 @@
         {
           "id": "timeout",
           "label": "Timeout (seconds)",
-          "description": "Maximum seconds to wait for all modules to complete",
+          "description": "Maximum seconds to wait for each module to complete",
           "type": "number",
           "default": 10,
           "min": 1,

@@ -35,14 +35,15 @@ sudo make install PREFIX=/usr
 ```bash
 lmtt config
 ```
-Opens an interactive TUI to configure:
-- Theme profiles (light/dark)
-- Wallpaper path (supports `$WALLPAPER` env vars)
-- Matugen settings
-- Module settings
-- Notifications, cache, logging
+Opens an interactive TUI with three sections:
+- **General** — wallpaper path (supports env vars), default mode, scheme type,
+  matugen settings, plus Notifications / Performance / Cache / Logging
+- **Light Profile** and **Dark Profile** — per-mode GTK/icon/cursor themes,
+  fonts, VSCode theme, opacity, blur
 
-Changes are auto-saved to `~/.config/lmtt/config.toml`
+Modules aren't configured from the TUI — toggle one by editing
+`[modules.<name>] enabled = false` in the config. Changes are auto-saved to
+`~/.config/lmtt/config.toml`.
 
 ### Theme Switching
 ```bash

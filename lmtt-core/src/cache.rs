@@ -1,16 +1,21 @@
-use crate::{Config, Result};
-use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use sha2::{Sha256, Digest};
+use crate::{Config, Result, ThemeMode};
 
 pub struct Cache {
     cache_dir: PathBuf,
+    // Memoized wallpaper hashes: a cache-miss switch hashes the wallpaper in
+    // get_cached_colors and again in set_cached_colors — for a multi-MB image
+    // that's two full reads on the slow path the cache exists to avoid.
+    hash_memo: Mutex<HashMap<PathBuf, String>>,
 }
 
 impl Cache {
     pub fn new(cache_dir: PathBuf) -> Result<Self> {
         std::fs::create_dir_all(&cache_dir)?;
-        Ok(Self { cache_dir })
+        Ok(Self { cache_dir, hash_memo: Mutex::new(HashMap::new()) })
     }
 
     /// Create cache from config (cache.dir is already tilde-expanded by Config::load)
@@ -18,54 +23,38 @@ impl Cache {
         Self::new(PathBuf::from(&config.cache.dir))
     }
 
-    /// Calculate SHA256 hash of wallpaper file
+    /// Calculate SHA256 hash of wallpaper file (memoized per process run).
     pub async fn wallpaper_hash(&self, wallpaper_path: &Path) -> Result<String> {
+        if let Ok(memo) = self.hash_memo.lock() {
+            if let Some(hash) = memo.get(wallpaper_path) {
+                return Ok(hash.clone());
+            }
+        }
         let contents = tokio::fs::read(wallpaper_path).await?;
         let mut hasher = Sha256::new();
         hasher.update(&contents);
-        let hash = hasher.finalize();
-        Ok(format!("{:x}", hash))
-    }
-
-    /// Check if wallpaper has changed since last run
-    pub async fn wallpaper_changed(&self, wallpaper_path: &Path) -> Result<bool> {
-        let current_hash = self.wallpaper_hash(wallpaper_path).await?;
-        let cache_file = self.cache_dir.join("wallpaper.hash");
-
-        if !cache_file.exists() {
-            return Ok(true);
+        let hash = format!("{:x}", hasher.finalize());
+        if let Ok(mut memo) = self.hash_memo.lock() {
+            memo.insert(wallpaper_path.to_path_buf(), hash.clone());
         }
-
-        let cached_hash = tokio::fs::read_to_string(&cache_file).await?;
-        Ok(current_hash != cached_hash.trim())
+        Ok(hash)
     }
 
-    /// Update wallpaper hash cache
-    pub async fn update_wallpaper_cache(&self, wallpaper_path: &Path) -> Result<()> {
-        let hash = self.wallpaper_hash(wallpaper_path).await?;
-        let cache_file = self.cache_dir.join("wallpaper.hash");
-        tokio::fs::write(&cache_file, hash).await?;
-        Ok(())
-    }
-
-    /// Get cached theme state
-    pub async fn get_theme_state(&self) -> Result<String> {
+    /// Get cached theme state, falling back to `default_mode` when the state
+    /// file is missing or holds something unparseable (e.g. a torn write).
+    pub async fn get_theme_state(&self, default_mode: ThemeMode) -> Result<ThemeMode> {
         let state_file = self.cache_dir.join("theme_state");
-        if state_file.exists() {
-            Ok(tokio::fs::read_to_string(&state_file)
-                .await?
-                .trim()
-                .to_string())
-        } else {
-            Ok("dark".to_string())
+        match tokio::fs::read_to_string(&state_file).await {
+            Ok(content) => Ok(content.trim().parse().unwrap_or(default_mode)),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(default_mode),
+            Err(e) => Err(e.into()),
         }
     }
 
     /// Set theme state
-    pub async fn set_theme_state(&self, mode: &str) -> Result<()> {
+    pub async fn set_theme_state(&self, mode: ThemeMode) -> Result<()> {
         let state_file = self.cache_dir.join("theme_state");
-        tokio::fs::write(&state_file, mode).await?;
-        Ok(())
+        crate::fsutil::write_atomic(&state_file, mode.to_string()).await
     }
 
     /// Get cached colors for a wallpaper/mode/scheme combination
@@ -75,21 +64,20 @@ impl Cache {
         mode: &str,
         scheme_type: &str,
     ) -> Result<Option<HashMap<String, String>>> {
-        let hash = self.wallpaper_hash(wallpaper_path).await?;
-        let hash_prefix = &hash[..16];
-        let cache_file = self.cache_dir.join(format!(
-            "colors_{}_{}_{}.json",
-            hash_prefix, mode, scheme_type
-        ));
+        let cache_file = self.colors_cache_file(wallpaper_path, mode, scheme_type).await?;
 
-        if !cache_file.exists() {
-            return Ok(None);
+        let content = match tokio::fs::read_to_string(&cache_file).await {
+            Ok(content) => content,
+            // Missing or unreadable cache is a miss, not an error
+            Err(_) => return Ok(None),
+        };
+        match serde_json::from_str(&content) {
+            Ok(colors) => Ok(Some(colors)),
+            Err(e) => {
+                tracing::debug!("Ignoring corrupt color cache {}: {}", cache_file.display(), e);
+                Ok(None)
+            }
         }
-
-        let content = tokio::fs::read_to_string(&cache_file).await?;
-        let colors: HashMap<String, String> = serde_json::from_str(&content)
-            .map_err(|e| crate::Error::Config(format!("Failed to parse cached colors: {}", e)))?;
-        Ok(Some(colors))
     }
 
     /// Cache colors for a wallpaper/mode/scheme combination
@@ -100,16 +88,20 @@ impl Cache {
         scheme_type: &str,
         colors: &HashMap<String, String>,
     ) -> Result<()> {
-        let hash = self.wallpaper_hash(wallpaper_path).await?;
-        let hash_prefix = &hash[..16];
-        let cache_file = self.cache_dir.join(format!(
-            "colors_{}_{}_{}.json",
-            hash_prefix, mode, scheme_type
-        ));
-
+        let cache_file = self.colors_cache_file(wallpaper_path, mode, scheme_type).await?;
         let json = serde_json::to_string(colors)
             .map_err(|e| crate::Error::Config(format!("Failed to serialize colors: {}", e)))?;
-        tokio::fs::write(&cache_file, json).await?;
-        Ok(())
+        crate::fsutil::write_atomic(&cache_file, json).await
+    }
+
+    async fn colors_cache_file(
+        &self,
+        wallpaper_path: &Path,
+        mode: &str,
+        scheme_type: &str,
+    ) -> Result<PathBuf> {
+        let hash = self.wallpaper_hash(wallpaper_path).await?;
+        let hash_prefix = &hash[..16];
+        Ok(self.cache_dir.join(format!("colors_{}_{}_{}.json", hash_prefix, mode, scheme_type)))
     }
 }

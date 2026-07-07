@@ -6,6 +6,12 @@ crate::register_module!(HyprlockModule);
 
 pub struct HyprlockModule;
 
+impl Default for HyprlockModule {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl HyprlockModule {
     pub fn new() -> Self {
         Self
@@ -103,7 +109,7 @@ impl ThemeModule for HyprlockModule {
             "$surface_container = rgb({})\n",
             surface_container.trim_start_matches('#')
         ));
-        content.push_str("\n");
+        content.push('\n');
 
         // RGBA versions for backgrounds with transparency
         let (sr, sg, sb) = Self::hex_to_rgb(surface);

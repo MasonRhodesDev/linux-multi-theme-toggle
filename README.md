@@ -12,7 +12,6 @@
 - 🧹 **Clean Uninstall**: `lmtt cleanup` removes all injected config
 - ⚙️ **Highly Configurable**: TOML config at `~/.config/lmtt/config.toml`
 - 🔔 **Desktop Notifications**: Optional notifications for theme changes
-- 📡 **Event System**: JSON event stream for custom integrations
 
 ## Installation
 
@@ -92,18 +91,14 @@ Launch the interactive configuration manager:
 lmtt config
 ```
 
-The TUI provides 6 tabs matching the config file structure:
-- **General** - wallpaper, default_mode, use_matugen, custom colors
-- **Notifications** - enabled, timeout, show_module_progress  
-- **Performance** - timeout, slow_module_threshold
-- **Modules** - enable/disable individual modules
-- **Cache** - enabled, cache directory
-- **Logging** - level, log_file, max_log_size
+The schema-driven TUI has three sections:
+- **General** - wallpaper, default_mode, scheme_type, use_matugen, default color files, with Notifications / Performance / Cache / Logging as subsections
+- **Light Profile** - GTK/icon/cursor themes, fonts, VSCode theme, opacity, blur for light mode
+- **Dark Profile** - the same settings for dark mode
 
-**Module Status:**
-- ✓ **Enabled** (green) - currently active
-- ✗ **Disabled** (red) - installed but disabled
-- ⊘ **Not Installed** (gray) - not on system
+Modules are not toggled from the TUI — enable or disable one by editing
+`[modules.<name>]` `enabled = false` in `~/.config/lmtt/config.toml` (modules
+are otherwise auto-skipped when their app isn't installed).
 
 **Controls:**
 - `Tab`/`←→`/`h/l` - Switch between sections
@@ -149,10 +144,10 @@ Config file: `~/.config/lmtt/config.toml`
 [general]
 wallpaper = "~/Pictures/forrest.png"
 default_mode = "dark"
-scheme_type = "scheme-expressive"
+scheme_type = "scheme-tonal-spot"
 use_matugen = true  # Set to false to use fallback/custom colors
-custom_light_colors = "~/.config/lmtt/colors-light.json"
-custom_dark_colors = "~/.config/lmtt/colors-dark.json"
+default_light_colors = "~/.config/lmtt/colors-light.json"
+default_dark_colors = "~/.config/lmtt/colors-dark.json"
 
 [notifications]
 enabled = true
@@ -168,7 +163,6 @@ enabled = true
 **Key features**:
 - **Modules enabled by default**: Apps are auto-detected and run if installed
 - **Disable modules**: Set `enabled = false` to skip specific apps
-- **Custom commands**: Add `command = "/path/to/script.sh"` for custom modules
 - **Flexible color sources**:
   - **matugen** (default): Generate colors from wallpaper
   - **Custom JSON**: Provide your own `colors-light.json` and `colors-dark.json`
@@ -198,7 +192,7 @@ Set `use_matugen = false` in config to use custom colors instead of wallpaper-ba
 
 LMTT supports user-defined custom modules in `~/.config/lmtt/modules/` - no recompilation needed!
 
-### Two Module Types
+### Three Module Types
 
 **1. Declarative (Template-based)** - For simple config files:
 ```toml
@@ -208,7 +202,6 @@ binary = "alacritty"
 
 [output]
 path = "~/.config/alacritty/lmtt-colors.yml"
-format = "yaml"
 
 [template]
 content = """
@@ -240,14 +233,14 @@ Custom modules are automatically discovered and loaded. See `examples/modules/` 
 |--------|-------------|------------|
 | GTK | gsettings | ✓ |
 | Waybar | `style.css` | ✓ |
-| Hyprland | `colors.conf` | ✓ |
+| Hyprland | `lmtt-colors.conf` | ✓ |
 | SwayNC | `style.css` | ✓ |
-| Wezterm | `colors.toml` | ✓ |
+| Wezterm | `lmtt-colors.lua` | ✓ |
 | Tmux | `lmtt-colors.conf` | ✓ |
 | Neovim | `lmtt-colors.lua` | ✓ |
 | VSCode | `settings.json` | ✓ |
 | Wofi | `style.css` | ✓ |
-| Fish | `lmtt-colors.fish` | ✓ |
+| Fish | universal variables (`set -U`) | — |
 
 ## Setup Mode
 
@@ -273,12 +266,15 @@ $ lmtt setup
 Each module adds a marked block at the top of your config:
 
 ```css
-# >>> lmtt managed block - do not edit manually >>>
+/* >>> lmtt managed block - do not edit manually >>> */
 @import url('../matugen/lmtt-colors.css');
-# <<< lmtt managed block <<<
+/* <<< lmtt managed block <<< */
 
 /* Your existing config below */
 ```
+
+The marker comment syntax matches the file type: CSS uses `/* */`, Lua uses
+`--`, and conf/ini files use `#`.
 
 This allows clean removal with `lmtt cleanup`.
 
@@ -328,15 +324,11 @@ Typical theme switch: **~100-200ms**
 
 Performance warnings for slow modules (>250ms default).
 
-## Events & Notifications
+## Notifications
 
-LMTT emits 3 event types:
-
-1. `switch_started` - Theme switch initiated
-2. `switch_completed` - Theme applied successfully
-3. `switch_failed` - Theme switch error
-
-Desktop notifications are shown by default (disable with `--no-notify` or config).
+Desktop notifications are shown when the theme changes (disable with
+`--no-notify`, or `[notifications] enabled = false` in the config). Set
+`show_module_progress = true` for a per-module notification as each applies.
 
 ## Troubleshooting
 

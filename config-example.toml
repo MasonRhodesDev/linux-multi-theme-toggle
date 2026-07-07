@@ -1,4 +1,4 @@
-# LMTT (Linux Matugen Theme Toggle) Configuration
+# LMTT (Linux Multi-Theme Toggle) Configuration
 # Save to ~/.config/lmtt/config.toml
 
 [general]
@@ -8,81 +8,63 @@ wallpaper = "~/Pictures/forrest.png"
 # Default theme mode if none specified
 default_mode = "dark"
 
-# Color scheme type (passed to matugen)
+# Color scheme type (passed to matugen). scheme-tonal-spot is the default —
+# it stays faithful to the wallpaper's seed color. scheme-expressive rotates
+# hues away from the seed and can produce clashing palettes.
 # Options: scheme-content, scheme-expressive, scheme-fidelity, scheme-fruit-salad, scheme-monochrome, scheme-neutral, scheme-rainbow, scheme-tonal-spot, scheme-vibrant
-scheme_type = "scheme-expressive"
+scheme_type = "scheme-tonal-spot"
+
+# Use matugen (wallpaper-based color generation). When false, or when matugen
+# fails, lmtt falls back to default_light_colors / default_dark_colors, then
+# to the built-in palette.
+use_matugen = true
+
+# Fallback color JSON files (an object of Material token -> hex)
+default_light_colors = "~/.config/lmtt/colors-light.json"
+default_dark_colors = "~/.config/lmtt/colors-dark.json"
 
 [notifications]
-# Enable desktop notifications
+# Show a desktop notification (via notify-send) when the theme changes
 enabled = true
 
-# Notification timeout in milliseconds (0 = default, -1 = never expire)
+# Notification timeout in milliseconds
 timeout = 5000
 
-# Show detailed module progress (slower, but more informative)
+# Emit a per-module notification as each one applies (noisier)
 show_module_progress = false
 
 [performance]
-# Maximum time to wait for all modules (seconds)
+# Maximum time to wait for EACH module to complete (seconds). A module that
+# exceeds this is reported as a timeout failure; other modules still run.
 timeout = 10
 
-# Performance warning threshold (milliseconds)
+# Log a warning if a module takes longer than this (milliseconds)
 slow_module_threshold = 250
 
 [modules]
-# Enable/disable specific modules
-# Modules are automatically skipped if their app is not installed
+# Enable/disable specific modules. Modules are automatically skipped if their
+# app isn't installed. Only the `enabled` key is read here — there is no
+# per-module `restart` or `command`. To run a custom script or reload on a
+# theme switch, add a TOML file under ~/.config/lmtt/modules/ instead (see
+# examples/README-modules.md).
+#
+# Built-in module names: gtk, xdg, qt, xfconf, hyprland, hyprpanel, waybar,
+# wofi, fuzzel, tmux, swaync, wezterm, vscode, nvim, fish.
 
 [modules.gtk]
 enabled = true
 
-[modules.xdg]
-enabled = true
-
-[modules.qt]
-enabled = true
-
-[modules.hyprland]
-enabled = true
-
 [modules.waybar]
 enabled = true
-# Waybar doesn't need restart with reload_style_on_change: true
-restart = false
 
-[modules.swaync]
-enabled = true
-restart = true
-
-[modules.wezterm]
-enabled = true
-
-[modules.tmux]
-enabled = true
-
-[modules.nvim]
-enabled = true
-
-[modules.vscode]
-enabled = true
-
-[modules.wofi]
-enabled = true
-
-[modules.fish]
-enabled = true
-
-[modules.electron]
-enabled = true
-
-# Add custom modules here
-# [modules.my_custom_app]
-# enabled = true
-# command = "/path/to/custom/script.sh"
+# Example: disable a module you don't want themed
+# [modules.vscode]
+# enabled = false
 
 [colors]
-# Override specific Material You colors (optional)
-# Leave empty to use matugen-generated colors
+# Override specific Material You color tokens (optional). Values must be hex
+# colors (#rgb, #rrggbb, or #rrggbbaa); anything else is ignored. Leave empty
+# to use matugen-generated colors.
 
 # Example overrides:
 # primary = "#9fd491"
@@ -90,18 +72,20 @@ enabled = true
 # tertiary = "#bbc3fa"
 
 [cache]
-# Enable wallpaper hash caching (skip regeneration if wallpaper unchanged)
+# Cache generated color schemes (keyed on wallpaper hash + mode + scheme
+# type) to speed up repeated switches. Set false to always regenerate.
 enabled = true
 
 # Cache directory
 dir = "~/.cache/lmtt"
 
 [logging]
-# Log level: error, warn, info, debug, trace
+# Log level: error, warn, info, debug, trace. Overridden by RUST_LOG and by
+# `lmtt --verbose`.
 level = "info"
 
-# Log to file
+# Log file (appended to; rotated to <file>.old past max_log_size)
 log_file = "~/.cache/lmtt/lmtt.log"
 
-# Log file rotation (MB)
+# Log file rotation threshold (MB)
 max_log_size = 10

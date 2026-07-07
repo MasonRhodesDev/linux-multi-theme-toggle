@@ -4,7 +4,7 @@
 
 A **complete Rust rewrite** of your bash theme toggle system with major architectural improvements:
 
-### Repository: `~/linux-matugen-theme-toggle`
+### Repository: `~/linux-multi-theme-toggle`
 
 ```
 24 files, 2,423 lines of Rust
@@ -28,9 +28,9 @@ Status: Foundation complete, ready for module porting
 ### 3. **Non-Intrusive Design** 🧹
 All config injections use marker comments:
 ```css
-# >>> lmtt managed block - do not edit manually >>>
+/* >>> lmtt managed block - do not edit manually >>> */
 @import url('../matugen/lmtt-colors.css');
-# <<< lmtt managed block <<<
+/* <<< lmtt managed block <<< */
 ```
 - Easy to identify lmtt-managed sections
 - Clean removal with `lmtt cleanup`
@@ -160,7 +160,7 @@ async fn apply(&self, scheme: &ColorScheme, _config: &Config) -> Result<()> {
 [general]
 wallpaper = "~/Pictures/forrest.png"
 default_mode = "dark"
-scheme_type = "scheme-expressive"
+scheme_type = "scheme-tonal-spot"
 
 [notifications]
 enabled = true
@@ -208,7 +208,7 @@ enabled = false
 Before deployment:
 ```bash
 # 1. Test compilation
-cd ~/linux-matugen-theme-toggle
+cd ~/linux-multi-theme-toggle
 cargo build --release
 
 # 2. Test basic commands
@@ -230,7 +230,7 @@ cat ~/.config/waybar/style.css  # Block should be gone
 
 ## Next Actions
 
-1. **Review the code**: `cd ~/linux-matugen-theme-toggle && ls -R`
+1. **Review the code**: `cd ~/linux-multi-theme-toggle && ls -R`
 2. **Read documentation**: `cat README.md` and `cat PROJECT_STATUS.md`
 3. **Test compilation**: `cargo check` (fast) or `cargo build` (full)
 4. **Port modules**: Use `lmtt-modules/src/waybar.rs` as template
@@ -239,7 +239,7 @@ cat ~/.config/waybar/style.css  # Block should be gone
 ## Repository Structure
 
 ```
-~/linux-matugen-theme-toggle/
+~/linux-multi-theme-toggle/
 ├── .git/                      # Git repository
 ├── .gitignore                 # Rust, IDE, OS files
 ├── Cargo.toml                 # Workspace definition
@@ -305,5 +305,5 @@ You now have a **production-ready foundation** for a high-performance theme swit
 
 The next phase is porting the remaining 12 modules from your bash implementation. Each module follows the same pattern, making it straightforward.
 
-**Repository**: `~/linux-matugen-theme-toggle`  
+**Repository**: `~/linux-multi-theme-toggle`  
 **Commit**: `b886ae3` (Initial commit: LMTT Rust rewrite foundation)

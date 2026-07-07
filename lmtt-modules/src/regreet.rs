@@ -6,6 +6,12 @@ crate::register_module!(RegreetModule);
 
 pub struct RegreetModule;
 
+impl Default for RegreetModule {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RegreetModule {
     pub fn new() -> Self {
         Self

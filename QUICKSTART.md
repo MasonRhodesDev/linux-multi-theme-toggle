@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-cd ~/repos/linux-matugen-theme-toggle
+cd ~/repos/linux-multi-theme-toggle
 
 # Install to ~/.local/bin (no root needed)
 make install-user
@@ -119,7 +119,7 @@ Location: `~/.config/lmtt/config.toml`
 [general]
 wallpaper = "~/Pictures/forrest.png"
 default_mode = "dark"
-scheme_type = "scheme-expressive"
+scheme_type = "scheme-tonal-spot"
 
 [notifications]
 enabled = true
@@ -183,7 +183,7 @@ rm -rf ~/.config/lmtt
 
 ### Build from source
 ```bash
-cd ~/repos/linux-matugen-theme-toggle
+cd ~/repos/linux-multi-theme-toggle
 make release
 ./target/release/lmtt --help
 ```
@@ -216,4 +216,4 @@ make watch
 - Binary: `~/.local/bin/lmtt` (after install-user)
 - Config: `~/.config/lmtt/config.toml`
 - Cache: `~/.cache/lmtt/`
-- Source: `~/repos/linux-matugen-theme-toggle`
+- Source: `~/repos/linux-multi-theme-toggle`

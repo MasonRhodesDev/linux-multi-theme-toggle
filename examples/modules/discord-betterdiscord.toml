@@ -8,7 +8,6 @@ priority = 100
 
 [output]
 path = "~/.config/BetterDiscord/themes/lmtt-material-you.theme.css"
-format = "css"
 
 [template]
 content = """

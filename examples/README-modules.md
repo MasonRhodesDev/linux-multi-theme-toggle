@@ -23,12 +23,12 @@ Best for: Simple config files with color substitution
 
 ```toml
 name = "myapp"
-binary = "myapp"           # Binary name to check if installed
+binary = "myapp"           # Optional: binary to check for installation.
+                           # Omit to always consider the module installed.
 priority = 100             # Lower = runs earlier
 
 [output]
 path = "~/.config/myapp/colors.conf"
-format = "conf"            # yaml, json, ini, css, toml, conf
 
 [template]
 content = """
@@ -60,6 +60,25 @@ priority = 100
 path = "~/.config/lmtt/scripts/myapp.sh"
 timeout = 10000
 pass_as_env = false        # If true, passes colors as env vars
+```
+
+The script gets the mode as its first argument, and (unless `pass_as_env`) a
+path to a JSON colors file as its second. `reload.command` and `script` both
+run via `sh -c`.
+
+### Method 3: Reload-Only
+
+Best for: an app that reads colors from a file lmtt already writes elsewhere
+(e.g. the shared `matugen/lmtt-colors.css`) and just needs poking to reload.
+
+```toml
+name = "myapp"
+binary = "myapp"           # Optional
+priority = 200
+
+[reload]
+command = "myapp-ctl reload"
+timeout = 5000
 ```
 
 Create the script at `~/.config/lmtt/scripts/myapp.sh`:

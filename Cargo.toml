@@ -20,7 +20,7 @@ description = "Linux Multi-Theme Toggle - Fast async theme switching for Hyprlan
 tokio = { version = "1.40", features = ["full"] }
 async-trait = "0.1"
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde_json = { version = "1.0", features = ["preserve_order"] }
 anyhow = "1.0"
 thiserror = "1.0"
 
@@ -50,6 +50,7 @@ inventory = "0.3"
 
 # Template engine for custom modules
 handlebars = "5.1"
+tempfile = "3.10"
 
 # TUI framework
 ratatui = "0.28"

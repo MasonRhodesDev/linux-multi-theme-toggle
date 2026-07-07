@@ -1,10 +1,16 @@
-use crate::{ConfigFileInfo, ThemeModule};
+use crate::{ThemeModule, ConfigFileInfo};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result, ThemeMode};
 
 crate::register_module!(XdgModule);
 
 pub struct XdgModule;
+
+impl Default for XdgModule {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl XdgModule {
     pub fn new() -> Self {
@@ -29,21 +35,29 @@ impl ThemeModule for XdgModule {
     async fn apply(&self, scheme: &ColorScheme, _config: &Config) -> Result<()> {
         let mode = scheme.mode;
 
-        // Ensure XDG portal service is running
-        let status = tokio::process::Command::new("systemctl")
-            .args(&["--user", "is-active", "--quiet", "xdg-desktop-portal"])
-            .status()
-            .await?;
+        // Ensure XDG portal service is running. systemd is optional here —
+        // the module is gated on dbus-send, so a non-systemd session must
+        // degrade gracefully rather than error out.
+        if which::which("systemctl").is_ok() {
+            let active = tokio::process::Command::new("systemctl")
+                .args(["--user", "is-active", "--quiet", "xdg-desktop-portal"])
+                .status()
+                .await
+                .map(|s| s.success())
+                .unwrap_or(false);
 
-        if !status.success() {
-            tracing::info!("[XDG] Starting xdg-desktop-portal service");
-            tokio::process::Command::new("systemctl")
-                .args(&["--user", "start", "xdg-desktop-portal"])
-                .output()
-                .await?;
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-        } else {
-            tracing::debug!("[XDG] Portal service already running");
+            if !active {
+                tracing::info!("[XDG] Starting xdg-desktop-portal service");
+                if let Err(e) = tokio::process::Command::new("systemctl")
+                    .args(["--user", "start", "xdg-desktop-portal"])
+                    .output()
+                    .await
+                {
+                    tracing::warn!("[XDG] Could not start portal service: {}", e);
+                }
+            } else {
+                tracing::debug!("[XDG] Portal service already running");
+            }
         }
 
         // XDG_CURRENT_DESKTOP and GTK_USE_PORTAL are session-level env vars
@@ -64,45 +78,54 @@ impl ThemeModule for XdgModule {
         // to emit a fake signal — apps only accept signals from the real
         // portal sender.
         //
-        // Wait for dconf → portal propagation, then verify.
-        tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
-
-        // Verify the portal reflects the correct value (logging only)
-        match tokio::process::Command::new("dbus-send")
-            .args(&[
-                "--session",
-                "--print-reply",
-                "--dest=org.freedesktop.portal.Desktop",
-                "/org/freedesktop/portal/desktop",
-                "org.freedesktop.portal.Settings.ReadOne",
-                "string:org.freedesktop.appearance",
-                "string:color-scheme",
-            ])
-            .output()
-            .await
-        {
-            Ok(output) if output.status.success() => {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                if stdout
-                    .lines()
-                    .any(|line| line.contains(&format!("uint32 {}", expected_value)))
-                {
-                    tracing::info!(
-                        "[XDG] Portal reports correct value ({}), signal emitted by portal",
-                        expected_value
+        // Poll for dconf → portal propagation instead of a fixed sleep: this
+        // runs in the sequential platform phase, so every 100ms saved here is
+        // felt on every switch. Verification is logging-only either way.
+        let deadline = tokio::time::Instant::now() + tokio::time::Duration::from_millis(1000);
+        let mut confirmed = false;
+        loop {
+            match tokio::process::Command::new("dbus-send")
+                .args([
+                    "--session",
+                    "--print-reply",
+                    "--dest=org.freedesktop.portal.Desktop",
+                    "/org/freedesktop/portal/desktop",
+                    "org.freedesktop.portal.Settings.ReadOne",
+                    "string:org.freedesktop.appearance",
+                    "string:color-scheme",
+                ])
+                .output()
+                .await
+            {
+                Ok(output) if output.status.success() => {
+                    let stdout = String::from_utf8_lossy(&output.stdout);
+                    if stdout.lines().any(|line| line.contains(&format!("uint32 {}", expected_value))) {
+                        confirmed = true;
+                        break;
+                    }
+                }
+                Ok(output) => {
+                    tracing::warn!(
+                        "[XDG] Portal query failed: {}",
+                        String::from_utf8_lossy(&output.stderr).trim()
                     );
-                } else {
-                    tracing::warn!("[XDG] Portal still reports stale value — apps may not have received signal");
-                    tracing::debug!("[XDG] Portal ReadOne output: {}", stdout.trim());
+                    break;
+                }
+                Err(e) => {
+                    tracing::warn!("[XDG] Failed to query portal: {}", e);
+                    break;
                 }
             }
-            Ok(output) => {
-                let stderr = String::from_utf8_lossy(&output.stderr);
-                tracing::warn!("[XDG] Portal query failed: {}", stderr.trim());
+            if tokio::time::Instant::now() >= deadline {
+                break;
             }
-            Err(e) => {
-                tracing::warn!("[XDG] Failed to query portal: {}", e);
-            }
+            tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+        }
+
+        if confirmed {
+            tracing::info!("[XDG] Portal reports correct value ({}), signal emitted by portal", expected_value);
+        } else {
+            tracing::warn!("[XDG] Portal did not confirm color-scheme {} — apps may not have received the signal", expected_value);
         }
 
         Ok(())

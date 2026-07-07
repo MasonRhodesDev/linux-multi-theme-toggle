@@ -9,7 +9,7 @@
 ## Compilation Test
 
 ```bash
-cd ~/linux-matugen-theme-toggle
+cd ~/linux-multi-theme-toggle
 
 # Quick check (no codegen)
 cargo check
@@ -169,9 +169,9 @@ head -n 5 ~/.config/waybar/style.css
 
 Expected to see:
 ```css
-# >>> lmtt managed block - do not edit manually >>>
+/* >>> lmtt managed block - do not edit manually >>> */
 @import url('../matugen/lmtt-colors.css');
-# <<< lmtt managed block <<<
+/* <<< lmtt managed block <<< */
 
 /* Your original content */
 ```
@@ -240,7 +240,9 @@ vim ~/.config/lmtt/config.toml
 ```
 
 Expected:
-- Error: "Wallpaper not found: /nonexistent/file.png"
+- The switch SUCCEEDS (exit code 0) using fallback colors, and logs a warning
+  about the missing wallpaper. Matugen generation fails → lmtt falls through
+  to the default_{light,dark}_colors JSON, then to the built-in palette.
 
 ### Test with Invalid Config
 
@@ -342,9 +344,5 @@ Check:
 
 ## Next Steps After Testing
 
-1. Port remaining bash modules
-2. Add event system
-3. Implement notifications
-4. Create Makefile
-5. Write unit tests
-6. Benchmark performance
+The modules, notifications, Makefile/packaging, and unit tests are all in
+place. Report issues or regressions against the current behavior.
