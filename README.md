@@ -91,6 +91,10 @@ Launch the interactive configuration manager:
 lmtt config
 ```
 
+Every setting is editable from one screen:
+
+![lmtt config TUI with General Settings (wallpaper, mode, matugen and notifications settings), Light Theme Profile, and Dark Theme Profile sections](.github/screenshots/config-tui.png)
+
 The schema-driven TUI has three sections:
 - **General** - wallpaper, default_mode, scheme_type, use_matugen, default color files, with Notifications / Performance / Cache / Logging as subsections
 - **Light Profile** - GTK/icon/cursor themes, fonts, VSCode theme, opacity, blur for light mode
@@ -296,6 +300,28 @@ lmtt cleanup --dry-run
 This is **completely non-intrusive** - your original config files are restored.
 
 ## Architecture
+
+Runtime pipeline for a theme switch:
+
+```mermaid
+flowchart TD
+    CMD["lmtt switch (mode)"] --> CFG["Load config from ~/.config/lmtt/"]
+    CFG --> RES{"Color resolution"}
+    RES -->|"use_matugen: matugen from wallpaper (cached — skipped if wallpaper unchanged)"| SCHEME["ColorScheme"]
+    RES -->|"else: custom colors-light.json / colors-dark.json"| SCHEME
+    RES -->|"else: built-in Material You fallback palette"| SCHEME
+    SCHEME --> REG["ModuleRegistry — inventory-discovered ThemeModule impls (17 built-ins + handlebars-templated custom modules)"]
+
+    subgraph PAR ["apply() for every enabled module, in parallel on Tokio — whole switch ~100-200ms"]
+        GTK["GTK: gsettings color-scheme + theme names"]
+        HYP["Hyprland: write lmtt-colors.conf include, hyprctl reload"]
+        XDG["xdg-desktop-portal: color-scheme via dbus-send"]
+        APPS["config writes: Waybar / SwayNC / Wofi CSS, Wezterm / Neovim Lua, Tmux conf, VSCode settings.json, ..."]
+    end
+
+    REG --> PAR
+    PAR --> NOTE["notify-send (optional)"]
+```
 
 ```
 lmtt/               # CLI binary
