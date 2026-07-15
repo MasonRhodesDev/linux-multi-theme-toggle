@@ -1,9 +1,10 @@
 # rpmlint filters for lmtt. Lets CI gate on rpmlint without tripping over
 # domain vocabulary and our deliberate vendored-source layout.
 
-# Domain terms rpmlint's dictionary doesn't know (Hyprland, Wayland, Waybar,
-# matugen, TUI, async, lmtt itself, ...). Not real defects.
-addFilter("spelling-error")
+# NOTE: rpmlint 2.x makes an UNUSED filter an error, so only add filters
+# that currently fire. The old blanket spelling-error filter was removed
+# once no description tripped it; re-add narrowly if domain terms
+# (Hyprland, Wayland, matugen, ...) trip the dictionary again.
 # Source1 is the cargo-vendor tarball produced by build-srpm.sh, not a URL —
 # intentional (offline, reproducible RPM build; also vendors the schema-tui
 # git dependency).
