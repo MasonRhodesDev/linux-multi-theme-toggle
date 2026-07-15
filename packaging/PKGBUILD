@@ -7,7 +7,7 @@
 # `makepkg --printsrcinfo > .SRCINFO` on every change).
 
 pkgname=lmtt
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc="Linux Multi-Theme Toggle - fast async theme switching for Hyprland/Wayland"
 arch=('x86_64')

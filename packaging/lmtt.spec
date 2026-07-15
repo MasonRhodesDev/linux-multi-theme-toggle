@@ -7,7 +7,7 @@
 %bcond_without check
 
 Name:           lmtt
-Version:        0.1.0
+Version:        0.1.1
 Release:        1%{?dist}
 Summary:        Fast async theme switching for Hyprland/Wayland desktops
 License:        MIT
@@ -78,6 +78,10 @@ install -Dpm0755 examples/scripts/*.sh -t %{buildroot}%{_datadir}/lmtt/examples/
 %{_datadir}/lmtt/
 
 %changelog
+* Wed Jul 15 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.1.1-1
+- hyprland: emit tertiary + tertiary_container in lmtt-colors.{conf,lua}
+  (used for the pinned-window border color)
+
 * Thu Jul 02 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.1.0-1
 - Initial packaged release: lmtt CLI + lmtt-config TUI, config example and
   custom-module examples under /usr/share/lmtt
