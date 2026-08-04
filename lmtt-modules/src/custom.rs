@@ -47,9 +47,14 @@ pub struct OutputConfig {
     pub path: String,
 }
 
+/// Exactly one of `content` (inline template) or `path` (template file) must
+/// be set — enforced by validate_shape at load time and again at apply time.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TemplateConfig {
-    pub content: String,
+    #[serde(default)]
+    pub content: Option<String>,
+    #[serde(default)]
+    pub path: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -139,6 +144,20 @@ fn validate_shape(table: &toml::Table) -> std::result::Result<(), String> {
     } else if has("output") || has("template") {
         if !(has("output") && has("template")) {
             return Err("a declarative module requires BOTH [output] and [template]".into());
+        }
+        // The untagged enum can't distinguish "inline template" from "file
+        // template" — both are one TemplateConfig — so enforce the
+        // exactly-one rule here where it produces a load-time error.
+        if let Some(template) = table.get("template").and_then(|t| t.as_table()) {
+            match (template.contains_key("content"), template.contains_key("path")) {
+                (true, true) => {
+                    return Err("[template] must set either 'content' or 'path', not both".into());
+                }
+                (false, false) => {
+                    return Err("[template] must set 'content' (inline) or 'path' (template file)".into());
+                }
+                _ => {}
+            }
         }
     } else if !has("reload") {
         return Err("module defines no [output]+[template], [script], or [reload]".into());
@@ -245,7 +264,30 @@ impl CustomModule {
         // Insert after the colors so "mode" always wins
         data.insert("mode", scheme.mode.to_string());
 
-        let rendered = handlebars.render_template(&template.content, &data)
+        // validate_shape enforces the exactly-one rule at load time; recheck
+        // here because CustomModule::new can be reached without from_file.
+        let template_source = match (&template.content, &template.path) {
+            (Some(content), None) => content.clone(),
+            (None, Some(path)) => {
+                let template_path = PathBuf::from(expand_tilde(path));
+                tokio::fs::read_to_string(&template_path).await
+                    .map_err(|e| lmtt_core::Error::Module(format!(
+                        "Failed to read template file {}: {}", template_path.display(), e
+                    )))?
+            }
+            (Some(_), Some(_)) => {
+                return Err(lmtt_core::Error::Module(
+                    "[template] must set either 'content' or 'path', not both".into(),
+                ));
+            }
+            (None, None) => {
+                return Err(lmtt_core::Error::Module(
+                    "[template] must set 'content' (inline) or 'path' (template file)".into(),
+                ));
+            }
+        };
+
+        let rendered = handlebars.render_template(&template_source, &data)
             .map_err(|e| lmtt_core::Error::Module(format!("Template error: {}", e)))?;
 
         lmtt_core::fsutil::write_atomic(&output_path, rendered).await?;
@@ -356,40 +398,169 @@ fn expand_tilde(path: &str) -> String {
     lmtt_core::config::expand_path(path)
 }
 
-/// Load custom modules from ~/.config/lmtt/modules/*.toml. Parse failures are
-/// returned so callers can surface them — a module that silently fails to
-/// load looks exactly like a module that ran.
+/// Load custom modules from the module search path, in precedence order:
+/// $XDG_CONFIG_HOME/lmtt/modules, then each dir in $XDG_CONFIG_DIRS
+/// (default /etc/xdg) as <dir>/lmtt/modules, then /usr/share/lmtt/modules.
+/// Parse failures are returned so callers can surface them — a module that
+/// silently fails to load looks exactly like a module that ran.
 pub fn load_custom_modules() -> Result<Vec<CustomModule>> {
     let config_dir = dirs::config_dir()
         .ok_or(lmtt_core::Error::Config("No config dir".into()))?;
 
-    let modules_dir = config_dir.join("lmtt").join("modules");
-
-    if !modules_dir.exists() {
-        return Ok(vec![]);
+    let mut search_dirs = vec![config_dir.join("lmtt").join("modules")];
+    let xdg_config_dirs = std::env::var("XDG_CONFIG_DIRS")
+        .unwrap_or_else(|_| "/etc/xdg".to_string());
+    for dir in xdg_config_dirs.split(':').filter(|d| !d.is_empty()) {
+        search_dirs.push(PathBuf::from(dir).join("lmtt").join("modules"));
     }
+    search_dirs.push(PathBuf::from("/usr/share/lmtt/modules"));
 
+    Ok(load_modules_from_dirs(&search_dirs))
+}
+
+/// Load *.toml module definitions (non-recursive) from the given directories.
+/// Dedupe by FILENAME, first directory wins — a user file shadows a system
+/// file of the same name entirely, even if the definitions differ.
+fn load_modules_from_dirs(search_dirs: &[PathBuf]) -> Vec<CustomModule> {
     let mut modules = Vec::new();
+    let mut seen_files = std::collections::HashSet::new();
 
-    if let Ok(entries) = std::fs::read_dir(&modules_dir) {
+    for modules_dir in search_dirs {
+        let Ok(entries) = std::fs::read_dir(modules_dir) else { continue };
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) == Some("toml") {
-                match CustomModule::from_file(&path) {
-                    Ok(module) => {
-                        tracing::debug!("Loaded custom module: {}", module.definition.name);
-                        modules.push(module);
-                    }
-                    Err(e) => {
-                        // Print to stderr as well: a broken module definition
-                        // must be visible in normal CLI output, not just logs
-                        eprintln!("✗ [custom module] {}", e);
-                        tracing::warn!("Failed to load module {}: {}", path.display(), e);
-                    }
+            if path.extension().and_then(|s| s.to_str()) != Some("toml") {
+                continue;
+            }
+            let Some(file_name) = path.file_name().map(|n| n.to_os_string()) else { continue };
+            if !seen_files.insert(file_name) {
+                tracing::debug!("Module file {} shadowed by an earlier search dir", path.display());
+                continue;
+            }
+            match CustomModule::from_file(&path) {
+                Ok(module) => {
+                    tracing::debug!("Loaded custom module: {}", module.definition.name);
+                    modules.push(module);
+                }
+                Err(e) => {
+                    // Print to stderr as well: a broken module definition
+                    // must be visible in normal CLI output, not just logs
+                    eprintln!("✗ [custom module] {}", e);
+                    tracing::warn!("Failed to load module {}: {}", path.display(), e);
                 }
             }
         }
     }
 
-    Ok(modules)
+    modules
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lmtt_core::ThemeMode;
+
+    fn scheme() -> ColorScheme {
+        let mut scheme = ColorScheme::new(ThemeMode::Dark);
+        scheme.colors.insert("primary".to_string(), "#123456".to_string());
+        scheme
+    }
+
+    /// Minimal module just to have a &self for apply_declarative — the
+    /// output/template under test are passed in explicitly.
+    fn test_module() -> CustomModule {
+        CustomModule::new(CustomModuleDefinition {
+            name: "test".to_string(),
+            description: String::new(),
+            binary: None,
+            priority: 100,
+            module_type: CustomModuleType::ReloadOnly {
+                reload: ReloadConfig { command: "true".to_string(), timeout: 1000 },
+            },
+        })
+    }
+
+    #[tokio::test]
+    async fn template_path_renders_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let hbs_path = dir.path().join("colors.hbs");
+        tokio::fs::write(&hbs_path, "primary={{primary}} mode={{mode}}\n").await.unwrap();
+        let out_path = dir.path().join("out.conf");
+
+        let output = OutputConfig { path: out_path.to_string_lossy().into_owned() };
+        let template = TemplateConfig {
+            content: None,
+            path: Some(hbs_path.to_string_lossy().into_owned()),
+        };
+        test_module().apply_declarative(&scheme(), &output, &template, None).await.unwrap();
+
+        let rendered = tokio::fs::read_to_string(&out_path).await.unwrap();
+        assert_eq!(rendered, "primary=#123456 mode=dark\n");
+    }
+
+    #[tokio::test]
+    async fn template_rejects_both_content_and_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let output = OutputConfig { path: dir.path().join("out.conf").to_string_lossy().into_owned() };
+        let template = TemplateConfig {
+            content: Some("{{primary}}".to_string()),
+            path: Some("/nonexistent.hbs".to_string()),
+        };
+        let err = test_module().apply_declarative(&scheme(), &output, &template, None).await.unwrap_err();
+        assert!(err.to_string().contains("not both"), "unexpected error: {err}");
+    }
+
+    #[tokio::test]
+    async fn template_rejects_neither_content_nor_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let output = OutputConfig { path: dir.path().join("out.conf").to_string_lossy().into_owned() };
+        let template = TemplateConfig { content: None, path: None };
+        let err = test_module().apply_declarative(&scheme(), &output, &template, None).await.unwrap_err();
+        assert!(err.to_string().contains("must set 'content'"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn validate_shape_accepts_template_path() {
+        let table: toml::Table = toml::from_str(
+            "name = \"x\"\n[output]\npath = \"~/x\"\n[template]\npath = \"~/t.hbs\"\n",
+        ).unwrap();
+        assert!(validate_shape(&table).is_ok());
+    }
+
+    #[test]
+    fn validate_shape_rejects_both_content_and_path() {
+        let table: toml::Table = toml::from_str(
+            "name = \"x\"\n[output]\npath = \"~/x\"\n[template]\ncontent = \"c\"\npath = \"~/t.hbs\"\n",
+        ).unwrap();
+        assert!(validate_shape(&table).unwrap_err().contains("not both"));
+    }
+
+    #[test]
+    fn validate_shape_rejects_empty_template_table() {
+        let table: toml::Table = toml::from_str(
+            "name = \"x\"\n[output]\npath = \"~/x\"\n[template]\n",
+        ).unwrap();
+        assert!(validate_shape(&table).unwrap_err().contains("must set 'content'"));
+    }
+
+    #[test]
+    fn module_dedup_first_dir_wins() {
+        let user_dir = tempfile::tempdir().unwrap();
+        let system_dir = tempfile::tempdir().unwrap();
+        let def = |name: &str| format!("name = \"{name}\"\n\n[reload]\ncommand = \"true\"\n");
+        std::fs::write(user_dir.path().join("shared.toml"), def("user-shared")).unwrap();
+        std::fs::write(system_dir.path().join("shared.toml"), def("system-shared")).unwrap();
+        std::fs::write(system_dir.path().join("only-system.toml"), def("only-system")).unwrap();
+        // Non-toml files are ignored
+        std::fs::write(system_dir.path().join("notes.txt"), "ignored").unwrap();
+
+        let modules = load_modules_from_dirs(&[
+            user_dir.path().to_path_buf(),
+            system_dir.path().to_path_buf(),
+        ]);
+        let names: Vec<&str> = modules.iter().map(|m| m.definition.name.as_str()).collect();
+        assert_eq!(names.len(), 2, "loaded: {names:?}");
+        assert!(names.contains(&"user-shared"), "user file must shadow system: {names:?}");
+        assert!(names.contains(&"only-system"), "unshadowed system file loads: {names:?}");
+    }
 }

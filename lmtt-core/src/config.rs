@@ -621,6 +621,16 @@ fn expand_env_vars(input: &str) -> String {
     result
 }
 
+impl Default for ModuleSetting {
+    fn default() -> Self {
+        Self {
+            enabled: true, // Enabled by default
+            restart: false,
+            command: None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -654,15 +664,5 @@ mod tests {
         std::env::set_var("LMTT_SELF", "${LMTT_SELF}");
         // Old implementation hung forever here
         assert_eq!(expand_env_vars("${LMTT_SELF}"), "${LMTT_SELF}");
-    }
-}
-
-impl Default for ModuleSetting {
-    fn default() -> Self {
-        Self {
-            enabled: true, // Enabled by default
-            restart: false,
-            command: None,
-        }
     }
 }

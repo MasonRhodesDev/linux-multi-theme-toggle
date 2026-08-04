@@ -99,18 +99,24 @@ impl ThemeModule for SwayNCModule {
     }
 
     async fn apply(&self, scheme: &ColorScheme, _config: &Config) -> Result<()> {
-        let swaync_dir = dirs::config_dir()
-            .ok_or(lmtt_core::Error::Config("No config dir".into()))?
-            .join("swaync");
+        let config_root = dirs::config_dir()
+            .ok_or(lmtt_core::Error::Config("No config dir".into()))?;
+        let swaync_dir = config_root.join("swaync");
         let style_css = swaync_dir.join("style.css");
 
-        // Only maintain the color file when style.css imports lmtt-colors.css
-        // (any spelling: quoted, unquoted, or absolute path — must match what
-        // config_files() considers "already configured", or setup reports it
-        // configured while apply never writes the imported file). A style.css
+        // Only maintain the color file when a stylesheet imports
+        // lmtt-colors.css (any spelling: quoted, unquoted, or absolute path —
+        // must match what config_files() considers "already configured", or
+        // setup reports it configured while apply never writes the imported
+        // file). Besides the user's style.css, honor a packaged-DE sheet at
+        // ~/.config/hypr-de/swaync.css — those setups launch swaync with
+        // --style pointing there, bypassing style.css entirely. A stylesheet
         // that handles colors on its own needs no extra file.
         let style_content = tokio::fs::read_to_string(&style_css).await.unwrap_or_default();
-        let uses_color_file = style_content.contains("lmtt-colors.css");
+        let de_style_css = config_root.join("hypr-de").join("swaync.css");
+        let de_style_content = tokio::fs::read_to_string(&de_style_css).await.unwrap_or_default();
+        let uses_color_file = style_content.contains("lmtt-colors.css")
+            || de_style_content.contains("lmtt-colors.css");
 
         if uses_color_file {
             let colors_file = swaync_dir.join("lmtt-colors.css");
