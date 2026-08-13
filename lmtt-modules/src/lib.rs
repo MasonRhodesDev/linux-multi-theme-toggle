@@ -19,6 +19,7 @@ pub mod xfconf;
 pub mod hyprpanel;
 pub mod hyprlock;
 pub mod regreet;
+pub mod slint;
 
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Result, Config};
