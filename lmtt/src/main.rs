@@ -1,9 +1,11 @@
 mod matugen;
 
+use anyhow::Result;
+use appearance_profiles::{Background, Fit, OutputIdentity, Profile, Registry};
 use clap::{Parser, Subcommand};
 use lmtt_core::{Config, ThemeMode};
-use lmtt_modules::{ModuleRegistry, SetupManager, CleanupManager};
-use anyhow::Result;
+use lmtt_modules::{CleanupManager, ModuleRegistry, SetupManager};
+use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
 #[command(name = "lmtt")]
@@ -11,7 +13,7 @@ use anyhow::Result;
 struct Cli {
     #[command(subcommand)]
     command: Commands,
-    
+
     /// Verbose output
     #[arg(short, long, global = true)]
     verbose: bool,
@@ -23,45 +25,101 @@ enum Commands {
     Switch {
         /// Theme mode (light or dark). If omitted, toggles between current theme.
         mode: Option<ThemeMode>,
-        
+
         /// Disable notifications
         #[arg(long)]
         no_notify: bool,
     },
-    
+
     /// Setup mode - configure application config files
     Setup {
         /// Dry run - show what would be changed without prompting
         #[arg(long)]
         dry_run: bool,
     },
-    
+
     /// Cleanup - remove lmtt config injections
     Cleanup {
         /// Dry run - show what would be removed without prompting
         #[arg(long)]
         dry_run: bool,
-        
+
         /// Cleanup specific module only
         #[arg(short, long)]
         module: Option<String>,
     },
-    
+
     /// Show current theme status
     Status,
-    
+
     /// List installed modules
     List {
         /// Show all modules (including not installed)
         #[arg(long)]
         all: bool,
     },
-    
+
     /// Initialize config file
     Init,
-    
+
     /// Interactive configuration manager
     Config,
+
+    /// Manage the shared appearance-profile wallpaper registry
+    Wallpaper {
+        #[command(subcommand)]
+        command: WallpaperCommand,
+    },
+}
+
+#[derive(Subcommand)]
+enum WallpaperCommand {
+    /// Set the current user's global or per-output wallpaper
+    Set {
+        path: PathBuf,
+        #[arg(long)]
+        output: Option<String>,
+        #[arg(long, value_enum)]
+        fit: Option<WallpaperFit>,
+        /// Do not refresh the greeter-readable snapshot
+        #[arg(long)]
+        no_publish: bool,
+    },
+    /// Resolve the effective wallpaper for an output
+    Resolve {
+        #[arg(long, default_value = "default")]
+        output: String,
+        #[arg(long)]
+        description: Option<String>,
+        /// Resolve a greeter-readable snapshot for this user
+        #[arg(long)]
+        user: Option<String>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Refresh the greeter-readable snapshot for the current user
+    Publish,
+}
+
+#[derive(Clone, Copy, clap::ValueEnum)]
+enum WallpaperFit {
+    Fill,
+    Fit,
+    Stretch,
+    Center,
+    Tile,
+}
+
+impl From<WallpaperFit> for Fit {
+    fn from(value: WallpaperFit) -> Self {
+        match value {
+            WallpaperFit::Fill => Fit::Fill,
+            WallpaperFit::Fit => Fit::Fit,
+            WallpaperFit::Stretch => Fit::Stretch,
+            WallpaperFit::Center => Fit::Center,
+            WallpaperFit::Tile => Fit::Tile,
+        }
+    }
 }
 
 #[tokio::main]
@@ -70,7 +128,11 @@ async fn main() -> Result<()> {
 
     // Initialize logging: --verbose wins, then RUST_LOG, then config [logging].level
     let logging = Config::load().map(|c| c.logging).unwrap_or_default();
-    let log_level = if cli.verbose { "debug".to_string() } else { logging.level.clone() };
+    let log_level = if cli.verbose {
+        "debug".to_string()
+    } else {
+        logging.level.clone()
+    };
     let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new(log_level));
 
@@ -81,41 +143,165 @@ async fn main() -> Result<()> {
 
     match open_log_file(&logging) {
         Some(file) => registry
-            .with(tracing_subscriber::fmt::layer().with_ansi(false).with_writer(file))
+            .with(
+                tracing_subscriber::fmt::layer()
+                    .with_ansi(false)
+                    .with_writer(file),
+            )
             .init(),
         None => registry.init(),
     }
-    
+
     match cli.command {
         Commands::Switch { mode, no_notify } => {
             cmd_switch(mode, no_notify).await?;
         }
-        
+
         Commands::Setup { dry_run } => {
             cmd_setup(dry_run).await?;
         }
-        
+
         Commands::Cleanup { dry_run, module } => {
             cmd_cleanup(dry_run, module).await?;
         }
-        
+
         Commands::Status => {
             cmd_status().await?;
         }
-        
+
         Commands::List { all } => {
             cmd_list(all).await?;
         }
-        
+
         Commands::Init => {
             cmd_init().await?;
         }
-        
+
         Commands::Config => {
             return lmtt_config_tui::run_config_tui();
         }
+        Commands::Wallpaper { command } => cmd_wallpaper(command)?,
     }
-    
+
+    Ok(())
+}
+
+fn cmd_wallpaper(command: WallpaperCommand) -> Result<()> {
+    match command {
+        WallpaperCommand::Set {
+            path,
+            output,
+            fit,
+            no_publish,
+        } => {
+            let path = std::fs::canonicalize(&path).map_err(|error| {
+                anyhow::anyhow!("cannot use wallpaper {}: {error}", path.display())
+            })?;
+            let profile_path = appearance_profiles::user_profile_path()
+                .ok_or_else(|| anyhow::anyhow!("cannot determine the user config directory"))?;
+            let mut profile = Profile::load(&profile_path)?.unwrap_or_default();
+            let rule = if let Some(output) = output {
+                profile.output.entry(output).or_default()
+            } else {
+                &mut profile.background
+            };
+            rule.path = Some(path);
+            if let Some(fit) = fit {
+                rule.fit = Some(fit.into());
+            }
+            write_profile(&profile_path, &profile)?;
+            println!("Updated {}", profile_path.display());
+            if !no_publish {
+                publish_current(&profile)?;
+            }
+        }
+        WallpaperCommand::Resolve {
+            output,
+            description,
+            user,
+            json,
+        } => {
+            let registry = match user {
+                Some(user) => Registry::load_published(&user)?,
+                None => Registry::load_current_user()?,
+            };
+            let resolved = registry.resolve(&OutputIdentity::new(output, description), None);
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "path": resolved.path,
+                        "fit": format!("{:?}", resolved.fit).to_lowercase(),
+                        "path_source": format!("{:?}", resolved.path_source),
+                        "fit_source": format!("{:?}", resolved.fit_source),
+                    }))?
+                );
+            } else if let Some(path) = resolved.path {
+                println!("{}", path.display());
+            } else {
+                anyhow::bail!("no wallpaper is configured for this output");
+            }
+        }
+        WallpaperCommand::Publish => {
+            let path = appearance_profiles::user_profile_path()
+                .ok_or_else(|| anyhow::anyhow!("cannot determine the user config directory"))?;
+            let profile = Profile::load(&path)?.ok_or_else(|| {
+                anyhow::anyhow!("no user appearance profile at {}", path.display())
+            })?;
+            publish_current(&profile)?;
+        }
+    }
+    Ok(())
+}
+
+fn write_profile(path: &Path, profile: &Profile) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let temporary = path.with_extension("toml.tmp");
+    std::fs::write(&temporary, toml::to_string_pretty(profile)?)?;
+    std::fs::rename(temporary, path)?;
+    Ok(())
+}
+
+fn publish_current(profile: &Profile) -> Result<()> {
+    let user = std::env::var("USER").map_err(|_| anyhow::anyhow!("USER is not set"))?;
+    let destination = appearance_profiles::published_profile_path(&user)?;
+    let root = destination
+        .parent()
+        .expect("published profile has a parent");
+    std::fs::create_dir_all(root).map_err(|error| {
+        anyhow::anyhow!(
+            "cannot create {}: {error}; provision it for this user first",
+            root.display()
+        )
+    })?;
+    let assets = root.join("assets");
+    std::fs::create_dir_all(&assets)?;
+    let mut snapshot = profile.clone();
+    publish_rule(&mut snapshot.background, &assets, "background")?;
+    for (selector, rule) in &mut snapshot.output {
+        let safe: String = selector
+            .chars()
+            .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+            .collect();
+        publish_rule(rule, &assets, &format!("output-{safe}"))?;
+    }
+    write_profile(&destination, &snapshot)?;
+    println!("Published {}", destination.display());
+    Ok(())
+}
+
+fn publish_rule(rule: &mut Background, assets: &Path, stem: &str) -> Result<()> {
+    let Some(source) = rule.path.as_ref() else {
+        return Ok(());
+    };
+    let extension = source.extension().and_then(|v| v.to_str()).unwrap_or("img");
+    let destination = assets.join(format!("{stem}.{extension}"));
+    std::fs::copy(source, &destination).map_err(|error| {
+        anyhow::anyhow!("cannot publish wallpaper {}: {error}", source.display())
+    })?;
+    rule.path = Some(destination);
     Ok(())
 }
 
@@ -132,7 +318,11 @@ fn open_log_file(logging: &lmtt_core::config::LoggingConfig) -> Option<std::fs::
             let _ = std::fs::rename(&path, path.with_extension("log.old"));
         }
     }
-    std::fs::OpenOptions::new().create(true).append(true).open(&path).ok()
+    std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+        .ok()
 }
 
 /// Waybar-specific rule shipped in the shared palette file. It lives here
@@ -174,7 +364,11 @@ async fn cmd_switch(mode: Option<ThemeMode>, no_notify: bool) -> Result<()> {
     println!("Switching to {} mode...", mode);
 
     // Generate color scheme
-    let color_cache = if config.cache.enabled { Some(&cache) } else { None };
+    let color_cache = if config.cache.enabled {
+        Some(&cache)
+    } else {
+        None
+    };
     let scheme = matugen::generate_colors(&config, mode, color_cache).await?;
 
     // Write shared lmtt-colors.css BEFORE modules run.
@@ -220,7 +414,11 @@ async fn cmd_switch(mode: Option<ThemeMode>, no_notify: bool) -> Result<()> {
         }
 
         if show_progress {
-            let status = if result.is_success() { "updated" } else { "FAILED" };
+            let status = if result.is_success() {
+                "updated"
+            } else {
+                "FAILED"
+            };
             let _ = tokio::process::Command::new("notify-send")
                 .args([
                     "--app-name=lmtt",
@@ -279,20 +477,20 @@ async fn cmd_setup(dry_run: bool) -> Result<()> {
     let config = Config::load()?;
     let registry = ModuleRegistry::new();
     let setup = SetupManager::new(registry);
-    
+
     if dry_run {
         setup.dry_run().await?;
     } else {
         setup.run(&config).await?;
     }
-    
+
     Ok(())
 }
 
 async fn cmd_cleanup(dry_run: bool, module: Option<String>) -> Result<()> {
     let registry = ModuleRegistry::new();
     let cleanup = CleanupManager::new(registry);
-    
+
     if dry_run {
         cleanup.dry_run().await?;
     } else if let Some(module_name) = module {
@@ -300,38 +498,38 @@ async fn cmd_cleanup(dry_run: bool, module: Option<String>) -> Result<()> {
     } else {
         cleanup.run_all().await?;
     }
-    
+
     Ok(())
 }
 
 async fn cmd_status() -> Result<()> {
     let config = Config::load()?;
     let cache = lmtt_core::cache::Cache::from_config(&config)?;
-    
+
     let current_mode = cache.get_theme_state(config.general.default_mode).await?;
 
     println!("Current theme: {}", current_mode);
     println!("Wallpaper: {}", config.general.wallpaper);
     println!("Scheme type: {}", config.general.scheme_type);
-    
+
     Ok(())
 }
 
 async fn cmd_list(all: bool) -> Result<()> {
     let config = Config::load()?;
     let registry = ModuleRegistry::new();
-    
+
     println!("Module Status:");
     println!("==============\n");
-    
+
     for module in &registry.modules {
         let installed = module.is_installed();
         let enabled = module.is_enabled(&config);
-        
+
         if !all && !enabled {
             continue;
         }
-        
+
         let status = if enabled && installed {
             "✓ enabled"
         } else if installed {
@@ -339,38 +537,38 @@ async fn cmd_list(all: bool) -> Result<()> {
         } else {
             "✗ not installed"
         };
-        
+
         println!("{:12} {}", module.name(), status);
     }
-    
+
     Ok(())
 }
 
 async fn cmd_init() -> Result<()> {
     let config_path = Config::config_path()?;
-    
+
     if config_path.exists() {
         println!("Config already exists at: {}", config_path.display());
         print!("Overwrite? [y/N] ");
         std::io::Write::flush(&mut std::io::stdout())?;
-        
+
         let mut input = String::new();
         std::io::stdin().read_line(&mut input)?;
-        
+
         if !input.trim().eq_ignore_ascii_case("y") {
             println!("Cancelled.");
             return Ok(());
         }
     }
-    
+
     let config = Config::default();
     config.save()?;
-    
+
     println!("✓ Created config at: {}", config_path.display());
     println!("\nNext steps:");
     println!("1. Edit the config file to set your wallpaper path");
     println!("2. Run 'lmtt setup' to configure application config files");
     println!("3. Run 'lmtt switch dark' or 'lmtt switch light' to apply theme");
-    
+
     Ok(())
 }

@@ -334,6 +334,17 @@ impl Config {
         };
 
         config.general.wallpaper = expand_tilde(&config.general.wallpaper);
+        // The shared appearance registry owns wallpaper selection. Keep the
+        // legacy lmtt field as the final fallback for existing installations.
+        if let Ok(registry) = appearance_profiles::Registry::load_current_user() {
+            let resolved = registry.resolve(
+                &appearance_profiles::OutputIdentity::new("default", None),
+                None,
+            );
+            if let Some(path) = resolved.path {
+                config.general.wallpaper = path.to_string_lossy().into_owned();
+            }
+        }
         config.general.default_light_colors = expand_tilde(&config.general.default_light_colors);
         config.general.default_dark_colors = expand_tilde(&config.general.default_dark_colors);
         config.cache.dir = expand_tilde(&config.cache.dir);

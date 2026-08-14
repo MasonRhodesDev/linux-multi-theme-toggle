@@ -51,6 +51,7 @@ inventory = "0.3"
 # Template engine for custom modules
 handlebars = "5.1"
 tempfile = "3.10"
+appearance-profiles = { git = "https://github.com/MasonRhodesDev/appearance-profiles.git", rev = "75d831a" }
 
 # TUI framework
 ratatui = "0.28"
