@@ -37,14 +37,18 @@ Configuration lives in ~/.config/lmtt and is not part of this package.
 # -a1 unpacks the vendor tarball (vendor/ at its root) into the source dir.
 %autosetup -p1 -a1
 %cargo_prep -v vendor
-# %%cargo_prep only redirects crates-io at the vendor/ directory. schema-tui
-# is a git dependency, also vendored by build-srpm.sh; redirect its git
-# source at the same vendored copy (this is the stanza cargo vendor printed
-# when Source1 was created) so the build never touches the network.
+# %%cargo_prep only redirects crates-io at the vendor/ directory. Git
+# dependencies are also vendored; redirect them at those copies so the build
+# never touches the network.
 cat >> .cargo/config.toml << 'EOF'
 
 [source."git+https://github.com/MasonRhodesDev/schema-tui.git"]
 git = "https://github.com/MasonRhodesDev/schema-tui.git"
+replace-with = "vendored-sources"
+
+[source."git+https://github.com/MasonRhodesDev/appearance-profiles.git?rev=75d831a"]
+git = "https://github.com/MasonRhodesDev/appearance-profiles.git"
+rev = "75d831a"
 replace-with = "vendored-sources"
 EOF
 
