@@ -7,7 +7,7 @@
 %bcond_without check
 
 Name:           lmtt
-Version:        0.2.0
+Version:        0.2.1
 Release:        1%{?dist}
 Summary:        Fast async theme switching for Hyprland/Wayland desktops
 License:        MIT
@@ -82,6 +82,10 @@ install -Dpm0755 examples/scripts/*.sh -t %{buildroot}%{_datadir}/lmtt/examples/
 %{_datadir}/lmtt/
 
 %changelog
+* Fri Aug 14 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.1-1
+- Add the appearance-profiles registry, wallpaper set/resolve/publish CLI,
+  and shared wallpaper resolution for palette generation.
+
 * Tue Aug 04 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.0-1
 - Template files ([template] path), system module search path, packaged-DE swaync gate
 
