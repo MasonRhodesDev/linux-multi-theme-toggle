@@ -52,7 +52,7 @@ inventory = "0.3"
 handlebars = "5.1"
 tempfile = "3.10"
 appearance-profiles = { git = "https://github.com/MasonRhodesDev/appearance-profiles.git", rev = "75d831a" }
-hypr-paths = { git = "https://github.com/MasonRhodesDev/hypr-paths", rev = "535cec729936310b480c99203c05b5900d2a7e71" }
+hypr-paths = { git = "https://github.com/MasonRhodesDev/hypr-paths", rev = "1f94b71311a989bff5f7ae9b0ef2afd23ee14b16" }
 
 # TUI framework
 ratatui = "0.28"

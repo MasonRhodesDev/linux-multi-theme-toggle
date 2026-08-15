@@ -4,8 +4,7 @@ use lmtt_core::{ColorScheme, Config, Result};
 
 crate::register_module!(SlintModule);
 
-/// Writes Material You tokens for Slint apps (`slint-kit` ThemeBridge).
-/// Always-on: no binary gate — any Slint consumer can read the file.
+/// Writes Material You tokens through lmtt-core. Always-on: no binary gate.
 pub struct SlintModule;
 
 impl SlintModule {
@@ -33,20 +32,7 @@ impl ThemeModule for SlintModule {
     }
 
     async fn apply(&self, scheme: &ColorScheme, _config: &Config) -> Result<()> {
-        let path = dirs::config_dir()
-            .ok_or(lmtt_core::Error::Config("No config dir".into()))?
-            .join("matugen")
-            .join("lmtt-slint.json");
-
-        if let Some(parent) = path.parent() {
-            tokio::fs::create_dir_all(parent).await?;
-        }
-
-        let json = serde_json::to_string_pretty(scheme).map_err(|e| {
-            lmtt_core::Error::Module(format!("Failed to serialize slint theme JSON: {e}"))
-        })?;
-        lmtt_core::fsutil::write_atomic(&path, json).await?;
-
+        let path = lmtt_core::tokens::write_current(scheme)?;
         tracing::info!("[slint] Updated tokens at {}", path.display());
         Ok(())
     }

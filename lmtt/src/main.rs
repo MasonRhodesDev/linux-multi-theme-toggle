@@ -70,6 +70,16 @@ enum Commands {
         #[command(subcommand)]
         command: WallpaperCommand,
     },
+
+    /// Print the current palette (JSON) or a single token
+    Tokens {
+        /// Token name; prints `#rrggbb`
+        #[arg(long)]
+        key: Option<String>,
+        /// Read a greeter-readable published snapshot
+        #[arg(long)]
+        user: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -181,6 +191,7 @@ async fn main() -> Result<()> {
             return lmtt_config_tui::run_config_tui();
         }
         Commands::Wallpaper { command } => cmd_wallpaper(command)?,
+        Commands::Tokens { key, user } => cmd_tokens(key, user)?,
     }
 
     Ok(())
@@ -294,17 +305,34 @@ fn publish_current(profile: &Profile) -> Result<()> {
 }
 
 fn publish_tokens(root: &Path) -> Result<()> {
-    let Some(config_dir) = dirs::config_dir() else {
-        return Ok(());
-    };
-    let source = config_dir.join("matugen").join("lmtt-slint.json");
+    let source = lmtt_core::tokens::user_tokens_path()?;
     if !source.is_file() {
         return Ok(());
     }
-    let destination = root.join("lmtt-slint.json");
+    let destination = root.join("tokens.json");
     std::fs::copy(&source, &destination).map_err(|error| {
         anyhow::anyhow!("cannot publish tokens {}: {error}", source.display())
     })?;
+    Ok(())
+}
+
+fn cmd_tokens(key: Option<String>, user: Option<String>) -> Result<()> {
+    let scheme = match user {
+        Some(user) => lmtt_core::tokens::load_published(&user)?,
+        None => match lmtt_core::tokens::load_current() {
+            Ok(scheme) => scheme,
+            Err(_) => lmtt_core::tokens::load_preferring(ThemeMode::Dark),
+        },
+    };
+    if let Some(key) = key {
+        let value = scheme
+            .get(&key)
+            .cloned()
+            .unwrap_or_else(|| scheme.get_or_fallback(&key));
+        println!("{value}");
+        return Ok(());
+    }
+    println!("{}", serde_json::to_string_pretty(&scheme)?);
     Ok(())
 }
 
@@ -386,14 +414,15 @@ async fn cmd_switch(mode: Option<ThemeMode>, no_notify: bool) -> Result<()> {
         None
     };
     let scheme = matugen::generate_colors(&config, mode, color_cache).await?;
+    lmtt_core::tokens::write_current(&scheme)?;
 
     // Write shared lmtt-colors.css BEFORE modules run.
     // GTK3 apps (Thunar) re-read gtk.css when gsettings changes, which
     // @imports this file. It must have the new colors before the GTK
     // module updates gsettings, otherwise apps render with stale colors.
     // This is the ONLY writer of this file; modules just reload their app.
-    let css_path = dirs::config_dir()
-        .ok_or(anyhow::anyhow!("No config dir"))?
+    let css_path = lmtt_core::paths::user_dirs()?
+        .config_home()
         .join("matugen")
         .join("lmtt-colors.css");
     if let Some(parent) = css_path.parent() {

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use crate::{Error, Result, ThemeMode};
+use crate::{Result, ThemeMode};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[derive(Default)]
@@ -250,11 +250,15 @@ fn default_slow_threshold() -> u64 {
 }
 
 fn default_cache_dir() -> String {
-    "~/.cache/lmtt".to_string()
+    crate::paths::user_cache_dir()
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| "~/.cache/lmtt".to_string())
 }
 
 fn default_log_file() -> String {
-    "~/.cache/lmtt/lmtt.log".to_string()
+    crate::paths::user_cache_dir()
+        .map(|p| p.join("lmtt.log").to_string_lossy().into_owned())
+        .unwrap_or_else(|_| "~/.cache/lmtt/lmtt.log".to_string())
 }
 
 fn default_log_level() -> String {
@@ -266,11 +270,15 @@ fn default_max_log_size() -> u64 {
 }
 
 fn default_light_colors() -> String {
-    "~/.config/lmtt/colors-light.json".to_string()
+    crate::paths::user_config_dir()
+        .map(|p| p.join("colors-light.json").to_string_lossy().into_owned())
+        .unwrap_or_else(|_| "~/.config/lmtt/colors-light.json".to_string())
 }
 
 fn default_dark_colors() -> String {
-    "~/.config/lmtt/colors-dark.json".to_string()
+    crate::paths::user_config_dir()
+        .map(|p| p.join("colors-dark.json").to_string_lossy().into_owned())
+        .unwrap_or_else(|_| "~/.config/lmtt/colors-dark.json".to_string())
 }
 
 fn default_cursor_size() -> u32 {
@@ -523,9 +531,7 @@ impl Config {
     
     /// Get config file path
     pub fn config_path() -> Result<PathBuf> {
-        let dirs = hypr_paths::ConfigDirs::from_env()
-            .map_err(|e| Error::Config(e.to_string()))?;
-        Ok(dirs.config_dir("lmtt").join("config.toml"))
+        Ok(crate::paths::user_config_dir()?.join("config.toml"))
     }
     
     /// Check if a module is enabled (enabled by default, returns true if not in config)

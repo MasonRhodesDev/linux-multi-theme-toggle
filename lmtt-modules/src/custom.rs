@@ -399,23 +399,12 @@ fn expand_tilde(path: &str) -> String {
 }
 
 /// Load custom modules from the module search path, in precedence order:
-/// $XDG_CONFIG_HOME/lmtt/modules, then each dir in $XDG_CONFIG_DIRS
-/// (default /etc/xdg) as <dir>/lmtt/modules, then /usr/share/lmtt/modules.
-/// Parse failures are returned so callers can surface them — a module that
-/// silently fails to load looks exactly like a module that ran.
+/// user `$XDG_CONFIG_HOME/lmtt/modules`, `/etc/lmtt/modules`, then
+/// `/usr/share/lmtt/modules`. Parse failures are returned so callers can
+/// surface them — a module that silently fails to load looks exactly like a
+/// module that ran.
 pub fn load_custom_modules() -> Result<Vec<CustomModule>> {
-    let config_dir = dirs::config_dir()
-        .ok_or(lmtt_core::Error::Config("No config dir".into()))?;
-
-    let mut search_dirs = vec![config_dir.join("lmtt").join("modules")];
-    let xdg_config_dirs = std::env::var("XDG_CONFIG_DIRS")
-        .unwrap_or_else(|_| "/etc/xdg".to_string());
-    for dir in xdg_config_dirs.split(':').filter(|d| !d.is_empty()) {
-        search_dirs.push(PathBuf::from(dir).join("lmtt").join("modules"));
-    }
-    search_dirs.push(PathBuf::from("/usr/share/lmtt/modules"));
-
-    Ok(load_modules_from_dirs(&search_dirs))
+    Ok(load_modules_from_dirs(&lmtt_core::paths::module_search_dirs()))
 }
 
 /// Load *.toml module definitions (non-recursive) from the given directories.

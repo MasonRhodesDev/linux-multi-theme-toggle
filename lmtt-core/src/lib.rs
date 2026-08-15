@@ -5,7 +5,9 @@ pub mod cache;
 pub mod error;
 pub mod fallback;
 pub mod fsutil;
+pub mod paths;
 pub mod theme_detection;
+pub mod tokens;
 
 pub use config::Config;
 pub use types::{ThemeMode, ColorScheme};

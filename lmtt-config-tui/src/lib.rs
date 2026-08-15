@@ -8,9 +8,7 @@ use schema_tui::SchemaTUIBuilder;
 /// Run the LMTT configuration TUI
 pub fn run_config_tui() -> Result<()> {
     // Get config directory
-    let config_dir = dirs::config_dir()
-        .ok_or_else(|| anyhow::anyhow!("Could not find config directory"))?
-        .join("lmtt");
+    let config_dir = lmtt_core::paths::user_config_dir()?;
     
     // Ensure config directory exists
     std::fs::create_dir_all(&config_dir)?;

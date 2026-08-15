@@ -711,7 +711,7 @@ dependencies = [
 [[package]]
 name = "hypr-paths"
 version = "0.1.0"
-source = "git+https://github.com/MasonRhodesDev/hypr-paths?rev=535cec729936310b480c99203c05b5900d2a7e71#535cec729936310b480c99203c05b5900d2a7e71"
+source = "git+https://github.com/MasonRhodesDev/hypr-paths?rev=1f94b71311a989bff5f7ae9b0ef2afd23ee14b16#1f94b71311a989bff5f7ae9b0ef2afd23ee14b16"
 
 [[package]]
 name = "ident_case"
