@@ -1,4 +1,4 @@
-use crate::{ThemeModule, ModuleConstructor};
+use crate::{ModuleConstructor, ThemeModule};
 use lmtt_core::{ColorScheme, Config, Result};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -91,7 +91,10 @@ impl ModuleRegistry {
             results.push(joined.unwrap_or_else(|join_err| ModuleResult {
                 name,
                 duration_ms: 0,
-                result: Err(lmtt_core::Error::Module(format!("module task panicked: {}", join_err))),
+                result: Err(lmtt_core::Error::Module(format!(
+                    "module task panicked: {}",
+                    join_err
+                ))),
             }));
         }
 

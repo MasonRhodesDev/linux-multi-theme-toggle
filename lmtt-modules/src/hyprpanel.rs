@@ -1,4 +1,4 @@
-use crate::{ThemeModule, ConfigFileInfo};
+use crate::{ConfigFileInfo, ThemeModule};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result, ThemeMode};
 use serde_json::{Map, Value};
@@ -63,7 +63,10 @@ impl ThemeModule for HyprPanelModule {
             ))
         })?;
 
-        json.insert("theme.matugen_settings.mode".to_string(), Value::String(mode.to_string()));
+        json.insert(
+            "theme.matugen_settings.mode".to_string(),
+            Value::String(mode.to_string()),
+        );
 
         let new_content = serde_json::to_string_pretty(&json)?;
         lmtt_core::fsutil::write_atomic(&config_file, new_content).await?;
@@ -88,7 +91,9 @@ impl ThemeModule for HyprPanelModule {
                 .stderr(std::process::Stdio::null())
                 .process_group(0)
                 .spawn()
-                .map_err(|e| lmtt_core::Error::Module(format!("Failed to restart hyprpanel: {}", e)))?;
+                .map_err(|e| {
+                    lmtt_core::Error::Module(format!("Failed to restart hyprpanel: {}", e))
+                })?;
 
             tracing::info!("[HyprPanel] Restarted with {} theme", mode);
         }

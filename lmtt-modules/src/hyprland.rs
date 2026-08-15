@@ -1,4 +1,4 @@
-use crate::{ThemeModule, ConfigFileInfo};
+use crate::{ConfigFileInfo, ThemeModule};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result};
 
@@ -52,11 +52,11 @@ impl ThemeModule for HyprlandModule {
     fn name(&self) -> &'static str {
         "hyprland"
     }
-    
+
     fn binary_name(&self) -> &'static str {
         "hyprctl"
     }
-    
+
     fn priority(&self) -> u8 {
         100
     }
@@ -67,7 +67,7 @@ impl ThemeModule for HyprlandModule {
         // upgrade doesn't leave hyprland sourcing a file we no longer write.
         vec!["source = ~/.config/hypr/colors.conf".to_string()]
     }
-    
+
     async fn apply(&self, scheme: &ColorScheme, _config: &Config) -> Result<()> {
         let hypr_dir = dirs::config_dir()
             .ok_or(lmtt_core::Error::Config("No config dir".into()))?
@@ -97,8 +97,14 @@ impl ThemeModule for HyprlandModule {
         content.push_str(&format!("$lmtt_surface = rgb({})\n", surface));
         content.push_str(&format!("$lmtt_on_surface = rgb({})\n", on_surface));
         content.push_str(&format!("$lmtt_tertiary = rgb({})\n", tertiary));
-        content.push_str(&format!("$lmtt_tertiary_container = rgb({})\n", tertiary_container));
-        content.push_str(&format!("$lmtt_active_border = rgb({}) rgb({}) 45deg\n", primary, secondary));
+        content.push_str(&format!(
+            "$lmtt_tertiary_container = rgb({})\n",
+            tertiary_container
+        ));
+        content.push_str(&format!(
+            "$lmtt_active_border = rgb({}) rgb({}) 45deg\n",
+            primary, secondary
+        ));
         content.push_str(&format!("$lmtt_inactive_border = rgb({})\n", outline));
         content.push_str("$lmtt_shadow = rgb(000000)\n");
 
@@ -120,7 +126,10 @@ impl ThemeModule for HyprlandModule {
         lua.push_str(&format!("  surface = \"rgb({})\",\n", surface));
         lua.push_str(&format!("  on_surface = \"rgb({})\",\n", on_surface));
         lua.push_str(&format!("  tertiary = \"rgb({})\",\n", tertiary));
-        lua.push_str(&format!("  tertiary_container = \"rgb({})\",\n", tertiary_container));
+        lua.push_str(&format!(
+            "  tertiary_container = \"rgb({})\",\n",
+            tertiary_container
+        ));
         lua.push_str(&format!(
             "  active_border = {{ colors = {{ \"rgb({})\", \"rgb({})\" }}, angle = 45 }},\n",
             primary, secondary
@@ -164,8 +173,8 @@ impl ThemeModule for HyprlandModule {
     }
 
     async fn config_files(&self) -> Result<Vec<ConfigFileInfo>> {
-        let config_dir = dirs::config_dir()
-            .ok_or(lmtt_core::Error::Config("No config dir".into()))?;
+        let config_dir =
+            dirs::config_dir().ok_or(lmtt_core::Error::Config("No config dir".into()))?;
 
         let hyprland_conf = config_dir.join("hypr").join("hyprland.conf");
 

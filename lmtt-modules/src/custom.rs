@@ -1,9 +1,9 @@
-use crate::{ThemeModule, ConfigFileInfo};
+use crate::{ConfigFileInfo, ThemeModule};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CustomModuleDefinition {
@@ -81,8 +81,12 @@ pub struct ScriptConfig {
     pub pass_as_env: bool,
 }
 
-fn default_priority() -> u8 { 100 }
-fn default_timeout() -> u64 { 10000 }
+fn default_priority() -> u8 {
+    100
+}
+fn default_timeout() -> u64 {
+    10000
+}
 
 pub struct CustomModule {
     definition: CustomModuleDefinition,
@@ -99,7 +103,11 @@ impl CustomModule {
             Some(binary) => Box::leak(binary.clone().into_boxed_str()),
             None => "",
         };
-        Self { definition, name, binary_name }
+        Self {
+            definition,
+            name,
+            binary_name,
+        }
     }
 
     pub fn from_file(path: &PathBuf) -> Result<Self> {
@@ -109,13 +117,16 @@ impl CustomModule {
         // so a typo'd [ouput]/[templete] table degrades a Declarative module
         // to ReloadOnly with no error — the color file is never written yet
         // apply() reports success. Catch structural mistakes here instead.
-        let table: toml::Table = toml::from_str(&content)
-            .map_err(|e| lmtt_core::Error::Config(format!("Invalid module file {}: {}", path.display(), e)))?;
-        validate_shape(&table)
-            .map_err(|e| lmtt_core::Error::Config(format!("Invalid module file {}: {}", path.display(), e)))?;
+        let table: toml::Table = toml::from_str(&content).map_err(|e| {
+            lmtt_core::Error::Config(format!("Invalid module file {}: {}", path.display(), e))
+        })?;
+        validate_shape(&table).map_err(|e| {
+            lmtt_core::Error::Config(format!("Invalid module file {}: {}", path.display(), e))
+        })?;
 
-        let definition: CustomModuleDefinition = table.try_into()
-            .map_err(|e| lmtt_core::Error::Config(format!("Invalid module file {}: {}", path.display(), e)))?;
+        let definition: CustomModuleDefinition = table.try_into().map_err(|e| {
+            lmtt_core::Error::Config(format!("Invalid module file {}: {}", path.display(), e))
+        })?;
         Ok(Self::new(definition))
     }
 }
@@ -124,8 +135,15 @@ impl CustomModule {
 /// the untagged enum can't silently resolve to the wrong module type.
 fn validate_shape(table: &toml::Table) -> std::result::Result<(), String> {
     const KNOWN: &[&str] = &[
-        "name", "description", "binary", "priority",
-        "output", "template", "reload", "setup", "script",
+        "name",
+        "description",
+        "binary",
+        "priority",
+        "output",
+        "template",
+        "reload",
+        "setup",
+        "script",
     ];
     for key in table.keys() {
         if !KNOWN.contains(&key.as_str()) {
@@ -149,12 +167,17 @@ fn validate_shape(table: &toml::Table) -> std::result::Result<(), String> {
         // template" — both are one TemplateConfig — so enforce the
         // exactly-one rule here where it produces a load-time error.
         if let Some(template) = table.get("template").and_then(|t| t.as_table()) {
-            match (template.contains_key("content"), template.contains_key("path")) {
+            match (
+                template.contains_key("content"),
+                template.contains_key("path"),
+            ) {
                 (true, true) => {
                     return Err("[template] must set either 'content' or 'path', not both".into());
                 }
                 (false, false) => {
-                    return Err("[template] must set 'content' (inline) or 'path' (template file)".into());
+                    return Err(
+                        "[template] must set 'content' (inline) or 'path' (template file)".into(),
+                    );
                 }
                 _ => {}
             }
@@ -189,7 +212,9 @@ impl ThemeModule for CustomModule {
         // watchdog doesn't cap a legitimately long script/reload.
         let ms = match &self.definition.module_type {
             CustomModuleType::Script { script } => script.timeout,
-            CustomModuleType::Declarative { reload, .. } => reload.as_ref().map(|r| r.timeout).unwrap_or(0),
+            CustomModuleType::Declarative { reload, .. } => {
+                reload.as_ref().map(|r| r.timeout).unwrap_or(0)
+            }
             CustomModuleType::ReloadOnly { reload } => reload.timeout,
         };
         // 0 means "no timeout" (clamp_timeout maps it to 1h) — report that.
@@ -198,21 +223,25 @@ impl ThemeModule for CustomModule {
 
     async fn apply(&self, scheme: &ColorScheme, _config: &Config) -> Result<()> {
         match &self.definition.module_type {
-            CustomModuleType::Declarative { output, template, reload, .. } => {
-                self.apply_declarative(scheme, output, template, reload.as_ref()).await
+            CustomModuleType::Declarative {
+                output,
+                template,
+                reload,
+                ..
+            } => {
+                self.apply_declarative(scheme, output, template, reload.as_ref())
+                    .await
             }
-            CustomModuleType::Script { script } => {
-                self.apply_script(scheme, script).await
-            }
-            CustomModuleType::ReloadOnly { reload } => {
-                self.run_reload(reload).await
-            }
+            CustomModuleType::Script { script } => self.apply_script(scheme, script).await,
+            CustomModuleType::ReloadOnly { reload } => self.run_reload(reload).await,
         }
     }
 
     async fn config_files(&self) -> Result<Vec<ConfigFileInfo>> {
         match &self.definition.module_type {
-            CustomModuleType::Declarative { setup: Some(setup), .. } => {
+            CustomModuleType::Declarative {
+                setup: Some(setup), ..
+            } => {
                 let path = PathBuf::from(expand_tilde(&setup.config_file));
                 if !path.exists() {
                     return Ok(vec![]);
@@ -270,10 +299,15 @@ impl CustomModule {
             (Some(content), None) => content.clone(),
             (None, Some(path)) => {
                 let template_path = PathBuf::from(expand_tilde(path));
-                tokio::fs::read_to_string(&template_path).await
-                    .map_err(|e| lmtt_core::Error::Module(format!(
-                        "Failed to read template file {}: {}", template_path.display(), e
-                    )))?
+                tokio::fs::read_to_string(&template_path)
+                    .await
+                    .map_err(|e| {
+                        lmtt_core::Error::Module(format!(
+                            "Failed to read template file {}: {}",
+                            template_path.display(),
+                            e
+                        ))
+                    })?
             }
             (Some(_), Some(_)) => {
                 return Err(lmtt_core::Error::Module(
@@ -287,12 +321,17 @@ impl CustomModule {
             }
         };
 
-        let rendered = handlebars.render_template(&template_source, &data)
+        let rendered = handlebars
+            .render_template(&template_source, &data)
             .map_err(|e| lmtt_core::Error::Module(format!("Template error: {}", e)))?;
 
         lmtt_core::fsutil::write_atomic(&output_path, rendered).await?;
 
-        tracing::info!("[{}] Updated colors at {}", self.definition.name, output_path.display());
+        tracing::info!(
+            "[{}] Updated colors at {}",
+            self.definition.name,
+            output_path.display()
+        );
 
         if let Some(reload_cfg) = reload {
             self.run_reload(reload_cfg).await?;
@@ -308,12 +347,18 @@ impl CustomModule {
         cmd.arg("-c").arg(&reload.command).kill_on_drop(true);
         let output = tokio::time::timeout(clamp_timeout(reload.timeout), cmd.output())
             .await
-            .map_err(|_| lmtt_core::Error::Module(format!(
-                "[{}] Reload command timed out after {}ms", self.definition.name, reload.timeout
-            )))?
-            .map_err(|e| lmtt_core::Error::Module(format!(
-                "[{}] Failed to run reload command: {}", self.definition.name, e
-            )))?;
+            .map_err(|_| {
+                lmtt_core::Error::Module(format!(
+                    "[{}] Reload command timed out after {}ms",
+                    self.definition.name, reload.timeout
+                ))
+            })?
+            .map_err(|e| {
+                lmtt_core::Error::Module(format!(
+                    "[{}] Failed to run reload command: {}",
+                    self.definition.name, e
+                ))
+            })?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -331,7 +376,10 @@ impl CustomModule {
         let script_path = expand_tilde(&script.path);
 
         if !PathBuf::from(&script_path).exists() {
-            return Err(lmtt_core::Error::Module(format!("Script not found: {}", script_path)));
+            return Err(lmtt_core::Error::Module(format!(
+                "Script not found: {}",
+                script_path
+            )));
         }
 
         let mode = scheme.mode.to_string();
@@ -373,7 +421,10 @@ impl CustomModule {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(lmtt_core::Error::Module(format!("Script failed: {}", stderr)));
+            return Err(lmtt_core::Error::Module(format!(
+                "Script failed: {}",
+                stderr
+            )));
         }
 
         tracing::info!("[{}] Script executed successfully", self.definition.name);
@@ -404,7 +455,9 @@ fn expand_tilde(path: &str) -> String {
 /// surface them — a module that silently fails to load looks exactly like a
 /// module that ran.
 pub fn load_custom_modules() -> Result<Vec<CustomModule>> {
-    Ok(load_modules_from_dirs(&lmtt_core::paths::module_search_dirs()))
+    Ok(load_modules_from_dirs(
+        &lmtt_core::paths::module_search_dirs(),
+    ))
 }
 
 /// Load *.toml module definitions (non-recursive) from the given directories.
@@ -415,15 +468,22 @@ fn load_modules_from_dirs(search_dirs: &[PathBuf]) -> Vec<CustomModule> {
     let mut seen_files = std::collections::HashSet::new();
 
     for modules_dir in search_dirs {
-        let Ok(entries) = std::fs::read_dir(modules_dir) else { continue };
+        let Ok(entries) = std::fs::read_dir(modules_dir) else {
+            continue;
+        };
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|s| s.to_str()) != Some("toml") {
                 continue;
             }
-            let Some(file_name) = path.file_name().map(|n| n.to_os_string()) else { continue };
+            let Some(file_name) = path.file_name().map(|n| n.to_os_string()) else {
+                continue;
+            };
             if !seen_files.insert(file_name) {
-                tracing::debug!("Module file {} shadowed by an earlier search dir", path.display());
+                tracing::debug!(
+                    "Module file {} shadowed by an earlier search dir",
+                    path.display()
+                );
                 continue;
             }
             match CustomModule::from_file(&path) {
@@ -451,7 +511,9 @@ mod tests {
 
     fn scheme() -> ColorScheme {
         let mut scheme = ColorScheme::new(ThemeMode::Dark);
-        scheme.colors.insert("primary".to_string(), "#123456".to_string());
+        scheme
+            .colors
+            .insert("primary".to_string(), "#123456".to_string());
         scheme
     }
 
@@ -464,7 +526,10 @@ mod tests {
             binary: None,
             priority: 100,
             module_type: CustomModuleType::ReloadOnly {
-                reload: ReloadConfig { command: "true".to_string(), timeout: 1000 },
+                reload: ReloadConfig {
+                    command: "true".to_string(),
+                    timeout: 1000,
+                },
             },
         })
     }
@@ -473,15 +538,22 @@ mod tests {
     async fn template_path_renders_file() {
         let dir = tempfile::tempdir().unwrap();
         let hbs_path = dir.path().join("colors.hbs");
-        tokio::fs::write(&hbs_path, "primary={{primary}} mode={{mode}}\n").await.unwrap();
+        tokio::fs::write(&hbs_path, "primary={{primary}} mode={{mode}}\n")
+            .await
+            .unwrap();
         let out_path = dir.path().join("out.conf");
 
-        let output = OutputConfig { path: out_path.to_string_lossy().into_owned() };
+        let output = OutputConfig {
+            path: out_path.to_string_lossy().into_owned(),
+        };
         let template = TemplateConfig {
             content: None,
             path: Some(hbs_path.to_string_lossy().into_owned()),
         };
-        test_module().apply_declarative(&scheme(), &output, &template, None).await.unwrap();
+        test_module()
+            .apply_declarative(&scheme(), &output, &template, None)
+            .await
+            .unwrap();
 
         let rendered = tokio::fs::read_to_string(&out_path).await.unwrap();
         assert_eq!(rendered, "primary=#123456 mode=dark\n");
@@ -490,29 +562,49 @@ mod tests {
     #[tokio::test]
     async fn template_rejects_both_content_and_path() {
         let dir = tempfile::tempdir().unwrap();
-        let output = OutputConfig { path: dir.path().join("out.conf").to_string_lossy().into_owned() };
+        let output = OutputConfig {
+            path: dir.path().join("out.conf").to_string_lossy().into_owned(),
+        };
         let template = TemplateConfig {
             content: Some("{{primary}}".to_string()),
             path: Some("/nonexistent.hbs".to_string()),
         };
-        let err = test_module().apply_declarative(&scheme(), &output, &template, None).await.unwrap_err();
-        assert!(err.to_string().contains("not both"), "unexpected error: {err}");
+        let err = test_module()
+            .apply_declarative(&scheme(), &output, &template, None)
+            .await
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("not both"),
+            "unexpected error: {err}"
+        );
     }
 
     #[tokio::test]
     async fn template_rejects_neither_content_nor_path() {
         let dir = tempfile::tempdir().unwrap();
-        let output = OutputConfig { path: dir.path().join("out.conf").to_string_lossy().into_owned() };
-        let template = TemplateConfig { content: None, path: None };
-        let err = test_module().apply_declarative(&scheme(), &output, &template, None).await.unwrap_err();
-        assert!(err.to_string().contains("must set 'content'"), "unexpected error: {err}");
+        let output = OutputConfig {
+            path: dir.path().join("out.conf").to_string_lossy().into_owned(),
+        };
+        let template = TemplateConfig {
+            content: None,
+            path: None,
+        };
+        let err = test_module()
+            .apply_declarative(&scheme(), &output, &template, None)
+            .await
+            .unwrap_err();
+        assert!(
+            err.to_string().contains("must set 'content'"),
+            "unexpected error: {err}"
+        );
     }
 
     #[test]
     fn validate_shape_accepts_template_path() {
         let table: toml::Table = toml::from_str(
             "name = \"x\"\n[output]\npath = \"~/x\"\n[template]\npath = \"~/t.hbs\"\n",
-        ).unwrap();
+        )
+        .unwrap();
         assert!(validate_shape(&table).is_ok());
     }
 
@@ -526,10 +618,11 @@ mod tests {
 
     #[test]
     fn validate_shape_rejects_empty_template_table() {
-        let table: toml::Table = toml::from_str(
-            "name = \"x\"\n[output]\npath = \"~/x\"\n[template]\n",
-        ).unwrap();
-        assert!(validate_shape(&table).unwrap_err().contains("must set 'content'"));
+        let table: toml::Table =
+            toml::from_str("name = \"x\"\n[output]\npath = \"~/x\"\n[template]\n").unwrap();
+        assert!(validate_shape(&table)
+            .unwrap_err()
+            .contains("must set 'content'"));
     }
 
     #[test]
@@ -539,7 +632,11 @@ mod tests {
         let def = |name: &str| format!("name = \"{name}\"\n\n[reload]\ncommand = \"true\"\n");
         std::fs::write(user_dir.path().join("shared.toml"), def("user-shared")).unwrap();
         std::fs::write(system_dir.path().join("shared.toml"), def("system-shared")).unwrap();
-        std::fs::write(system_dir.path().join("only-system.toml"), def("only-system")).unwrap();
+        std::fs::write(
+            system_dir.path().join("only-system.toml"),
+            def("only-system"),
+        )
+        .unwrap();
         // Non-toml files are ignored
         std::fs::write(system_dir.path().join("notes.txt"), "ignored").unwrap();
 
@@ -549,7 +646,13 @@ mod tests {
         ]);
         let names: Vec<&str> = modules.iter().map(|m| m.definition.name.as_str()).collect();
         assert_eq!(names.len(), 2, "loaded: {names:?}");
-        assert!(names.contains(&"user-shared"), "user file must shadow system: {names:?}");
-        assert!(names.contains(&"only-system"), "unshadowed system file loads: {names:?}");
+        assert!(
+            names.contains(&"user-shared"),
+            "user file must shadow system: {names:?}"
+        );
+        assert!(
+            names.contains(&"only-system"),
+            "unshadowed system file loads: {names:?}"
+        );
     }
 }

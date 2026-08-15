@@ -1,28 +1,28 @@
-pub mod registry;
-pub mod setup;
 pub mod cleanup;
 pub mod custom;
-pub mod gtk;
-pub mod xdg;
-pub mod hyprland;
-pub mod waybar;
-pub mod wofi;
-pub mod fuzzel;
-pub mod tmux;
-pub mod swaync;
-pub mod wezterm;
-pub mod vscode;
-pub mod nvim;
 pub mod fish;
-pub mod qt;
-pub mod xfconf;
-pub mod hyprpanel;
+pub mod fuzzel;
+pub mod gtk;
+pub mod hyprland;
 pub mod hyprlock;
+pub mod hyprpanel;
+pub mod nvim;
+pub mod qt;
+pub mod registry;
 pub mod regreet;
+pub mod setup;
 pub mod slint;
+pub mod swaync;
+pub mod tmux;
+pub mod vscode;
+pub mod waybar;
+pub mod wezterm;
+pub mod wofi;
+pub mod xdg;
+pub mod xfconf;
 
 use async_trait::async_trait;
-use lmtt_core::{ColorScheme, Result, Config};
+use lmtt_core::{ColorScheme, Config, Result};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -50,7 +50,11 @@ fn comment_style(path: &Path) -> Option<(&'static str, &'static str)> {
 /// commented-out include line doesn't count as active configuration.
 fn is_comment_line(line: &str) -> bool {
     let t = line.trim_start();
-    t.starts_with('#') || t.starts_with("//") || t.starts_with("/*") || t.starts_with("--") || t.starts_with(';')
+    t.starts_with('#')
+        || t.starts_with("//")
+        || t.starts_with("/*")
+        || t.starts_with("--")
+        || t.starts_with(';')
 }
 
 /// Whether the config already has THIS module's integration active — the
@@ -110,7 +114,8 @@ fn strip_owned_blocks(content: &str, owned: &[&str]) -> Result<String> {
             }
             if j >= segments.len() {
                 return Err(lmtt_core::Error::Module(
-                    "Unterminated lmtt managed block — closing marker missing, not modifying".into(),
+                    "Unterminated lmtt managed block — closing marker missing, not modifying"
+                        .into(),
                 ));
             }
             if body_owned {
@@ -164,33 +169,34 @@ pub struct ConfigFileInfo {
 pub trait ThemeModule: Send + Sync {
     /// Module name (e.g., "Waybar", "Hyprland")
     fn name(&self) -> &'static str;
-    
+
     /// Binary name to check for installation (e.g., "waybar", "hyprctl")
     fn binary_name(&self) -> &'static str;
-    
+
     /// Check if the application is installed on the system
     fn is_installed(&self) -> bool {
         which::which(self.binary_name()).is_ok()
     }
-    
+
     /// Apply theme (non-blocking, returns immediately)
     async fn apply(&self, scheme: &ColorScheme, config: &Config) -> Result<()>;
-    
+
     /// Get config file(s) that need lmtt integration (for setup mode)
     /// Returns None if this module doesn't need config injection
     async fn config_files(&self) -> Result<Vec<ConfigFileInfo>> {
         Ok(vec![])
     }
-    
+
     /// Inject include line into config file, wrapped in marker comments that
     /// use the file type's actual comment syntax.
     async fn inject_config(&self, config_file: &ConfigFileInfo) -> Result<()> {
         let path = &config_file.path;
 
         if !path.exists() {
-            return Err(lmtt_core::Error::Module(
-                format!("Config file not found: {}", path.display())
-            ));
+            return Err(lmtt_core::Error::Module(format!(
+                "Config file not found: {}",
+                path.display()
+            )));
         }
 
         let content = tokio::fs::read_to_string(path).await?;
@@ -248,12 +254,12 @@ pub trait ThemeModule: Send + Sync {
         lmtt_core::fsutil::write_atomic(path, new_content).await?;
         Ok(true)
     }
-    
+
     /// Optional: Module-specific health check
     async fn health_check(&self) -> Result<()> {
         Ok(())
     }
-    
+
     /// Optional: Priority (lower = runs first, for dependencies)
     /// Platform modules (GTK, XDG, Qt) should have priority < 50
     /// Application modules should have priority >= 100
@@ -277,27 +283,27 @@ pub trait ThemeModule: Send + Sync {
     fn legacy_include_lines(&self) -> Vec<String> {
         Vec::new()
     }
-    
+
     /// Whether this module is enabled (checks config and installation)
     fn is_enabled(&self, config: &Config) -> bool {
         // Check config (defaults to true)
         if !config.is_module_enabled(self.name()) {
             return false;
         }
-        
+
         // Check if installed
         if !self.is_installed() {
             tracing::debug!("[{}] Not installed, skipping", self.name());
             return false;
         }
-        
+
         true
     }
 }
 
+pub use cleanup::CleanupManager;
 pub use registry::ModuleRegistry;
 pub use setup::SetupManager;
-pub use cleanup::CleanupManager;
 
 #[cfg(test)]
 mod inject_tests {
@@ -307,13 +313,23 @@ mod inject_tests {
 
     #[async_trait]
     impl ThemeModule for DummyModule {
-        fn name(&self) -> &'static str { "dummy" }
-        fn binary_name(&self) -> &'static str { "dummy" }
-        async fn apply(&self, _s: &ColorScheme, _c: &Config) -> Result<()> { Ok(()) }
+        fn name(&self) -> &'static str {
+            "dummy"
+        }
+        fn binary_name(&self) -> &'static str {
+            "dummy"
+        }
+        async fn apply(&self, _s: &ColorScheme, _c: &Config) -> Result<()> {
+            Ok(())
+        }
     }
 
     async fn round_trip(file_name: &str, body: &str, include_line: &str) -> (String, String) {
-        let dir = std::env::temp_dir().join(format!("lmtt-inject-test-{}-{}", std::process::id(), file_name));
+        let dir = std::env::temp_dir().join(format!(
+            "lmtt-inject-test-{}-{}",
+            std::process::id(),
+            file_name
+        ));
         tokio::fs::create_dir_all(&dir).await.unwrap();
         let path = dir.join(file_name);
         tokio::fs::write(&path, body).await.unwrap();
@@ -345,7 +361,11 @@ mod inject_tests {
     async fn css_uses_block_comments_and_round_trips() {
         let body = "* { color: red; }\n";
         let (injected, removed) = round_trip("style.css", body, "@import url('x.css');").await;
-        assert!(injected.starts_with("/* >>> lmtt managed block"), "CSS must get /* */ markers, got: {}", injected);
+        assert!(
+            injected.starts_with("/* >>> lmtt managed block"),
+            "CSS must get /* */ markers, got: {}",
+            injected
+        );
         assert!(!injected.contains("\n# >>>"), "no #-comments in CSS");
         assert_eq!(removed, body, "cleanup must restore the original file");
     }
@@ -353,15 +373,21 @@ mod inject_tests {
     #[tokio::test]
     async fn lua_uses_dash_comments_and_round_trips() {
         let body = "return {}\n";
-        let (injected, removed) = round_trip("wezterm.lua", body, "local colors = require('x')").await;
-        assert!(injected.starts_with("-- >>> lmtt managed block"), "Lua must get -- markers, got: {}", injected);
+        let (injected, removed) =
+            round_trip("wezterm.lua", body, "local colors = require('x')").await;
+        assert!(
+            injected.starts_with("-- >>> lmtt managed block"),
+            "Lua must get -- markers, got: {}",
+            injected
+        );
         assert_eq!(removed, body);
     }
 
     #[tokio::test]
     async fn conf_uses_hash_comments_and_round_trips() {
         let body = "monitor = ,preferred,auto,1\n";
-        let (injected, removed) = round_trip("hyprland.conf", body, "source = ~/.config/hypr/colors.conf").await;
+        let (injected, removed) =
+            round_trip("hyprland.conf", body, "source = ~/.config/hypr/colors.conf").await;
         assert!(injected.starts_with("# >>> lmtt managed block"));
         assert_eq!(removed, body);
     }
@@ -381,18 +407,33 @@ mod inject_tests {
             already_included: true,
         };
         let err = DummyModule.remove_config(&info).await;
-        assert!(err.is_err(), "must refuse to touch a file missing the closing marker");
-        assert_eq!(tokio::fs::read_to_string(&path).await.unwrap(), body, "file must be untouched");
+        assert!(
+            err.is_err(),
+            "must refuse to touch a file missing the closing marker"
+        );
+        assert_eq!(
+            tokio::fs::read_to_string(&path).await.unwrap(),
+            body,
+            "file must be untouched"
+        );
         tokio::fs::remove_dir_all(&dir).await.unwrap();
     }
 
     struct Owner(&'static str, Vec<String>);
     #[async_trait]
     impl ThemeModule for Owner {
-        fn name(&self) -> &'static str { self.0 }
-        fn binary_name(&self) -> &'static str { self.0 }
-        async fn apply(&self, _s: &ColorScheme, _c: &Config) -> Result<()> { Ok(()) }
-        fn legacy_include_lines(&self) -> Vec<String> { self.1.clone() }
+        fn name(&self) -> &'static str {
+            self.0
+        }
+        fn binary_name(&self) -> &'static str {
+            self.0
+        }
+        async fn apply(&self, _s: &ColorScheme, _c: &Config) -> Result<()> {
+            Ok(())
+        }
+        fn legacy_include_lines(&self) -> Vec<String> {
+            self.1.clone()
+        }
     }
 
     #[test]
@@ -402,10 +443,15 @@ mod inject_tests {
             "# {MARKER_START}\nsource = ~/.config/hypr/colors.conf\n# {MARKER_END}\n\nmonitor=,pref,auto,1\n"
         );
         assert!(is_included(&content, "source = ~/.config/hypr/colors.conf"));
-        assert!(!is_included(&content, "source = ~/.config/hypr/lmtt-colors.conf"),
-            "a stale block with a different include line must NOT count as included");
+        assert!(
+            !is_included(&content, "source = ~/.config/hypr/lmtt-colors.conf"),
+            "a stale block with a different include line must NOT count as included"
+        );
         // Commented-out active line must not count
-        assert!(!is_included("# @import url('x.css');\n", "@import url('x.css');"));
+        assert!(!is_included(
+            "# @import url('x.css');\n",
+            "@import url('x.css');"
+        ));
     }
 
     #[tokio::test]
@@ -417,7 +463,10 @@ mod inject_tests {
         let body = format!("# {MARKER_START}\nsource = ~/.config/hypr/colors.conf\n# {MARKER_END}\n\nmonitor=,pref,auto,1\n");
         tokio::fs::write(&path, &body).await.unwrap();
 
-        let module = Owner("hyprland", vec!["source = ~/.config/hypr/colors.conf".into()]);
+        let module = Owner(
+            "hyprland",
+            vec!["source = ~/.config/hypr/colors.conf".into()],
+        );
         let info = ConfigFileInfo {
             path: path.clone(),
             include_line: "source = ~/.config/hypr/lmtt-colors.conf".into(),
@@ -426,9 +475,19 @@ mod inject_tests {
         };
         module.inject_config(&info).await.unwrap();
         let out = tokio::fs::read_to_string(&path).await.unwrap();
-        assert!(out.contains("lmtt-colors.conf"), "new source injected: {out}");
-        assert!(!out.contains("hypr/colors.conf\n"), "stale old source removed: {out}");
-        assert_eq!(out.matches(MARKER_START).count(), 1, "exactly one managed block: {out}");
+        assert!(
+            out.contains("lmtt-colors.conf"),
+            "new source injected: {out}"
+        );
+        assert!(
+            !out.contains("hypr/colors.conf\n"),
+            "stale old source removed: {out}"
+        );
+        assert_eq!(
+            out.matches(MARKER_START).count(),
+            1,
+            "exactly one managed block: {out}"
+        );
         tokio::fs::remove_dir_all(&dir).await.unwrap();
     }
 
@@ -452,7 +511,10 @@ mod inject_tests {
         module_a.remove_config(&info_a).await.unwrap();
         let out = tokio::fs::read_to_string(&path).await.unwrap();
         assert!(!out.contains("source = A.conf"), "A's block removed: {out}");
-        assert!(out.contains("source = B.conf"), "B's block preserved: {out}");
+        assert!(
+            out.contains("source = B.conf"),
+            "B's block preserved: {out}"
+        );
         assert!(out.contains("user line"), "user content preserved: {out}");
         tokio::fs::remove_dir_all(&dir).await.unwrap();
     }
@@ -474,7 +536,10 @@ mod inject_tests {
         };
         module.remove_config(&info).await.unwrap();
         let out = tokio::fs::read_to_string(&path).await.unwrap();
-        assert_eq!(out, ".a { color: red; }\r\n", "CRLF preserved, block removed: {out:?}");
+        assert_eq!(
+            out, ".a { color: red; }\r\n",
+            "CRLF preserved, block removed: {out:?}"
+        );
         tokio::fs::remove_dir_all(&dir).await.unwrap();
     }
 
@@ -491,8 +556,15 @@ mod inject_tests {
             description: String::new(),
             already_included: false,
         };
-        assert!(DummyModule.inject_config(&info).await.is_err(), "must refuse strict JSON");
-        assert_eq!(tokio::fs::read_to_string(&path).await.unwrap(), "{\n  \"a\": 1\n}\n", "file untouched");
+        assert!(
+            DummyModule.inject_config(&info).await.is_err(),
+            "must refuse strict JSON"
+        );
+        assert_eq!(
+            tokio::fs::read_to_string(&path).await.unwrap(),
+            "{\n  \"a\": 1\n}\n",
+            "file untouched"
+        );
         tokio::fs::remove_dir_all(&dir).await.unwrap();
     }
 }

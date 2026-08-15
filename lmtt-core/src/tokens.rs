@@ -91,7 +91,9 @@ fn write_scheme(path: &Path, scheme: &ColorScheme) -> Result<()> {
 }
 
 fn migrate_legacy_slint_json(dest: &Path) -> Result<()> {
-    let legacy = crate::paths::user_dirs()?.config_home().join(LEGACY_SLINT_JSON);
+    let legacy = crate::paths::user_dirs()?
+        .config_home()
+        .join(LEGACY_SLINT_JSON);
     if !legacy.is_file() {
         return Ok(());
     }

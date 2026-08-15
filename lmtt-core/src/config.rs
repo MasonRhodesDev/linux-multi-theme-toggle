@@ -1,32 +1,31 @@
+use crate::{Result, ThemeMode};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use crate::{Result, ThemeMode};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Config {
     #[serde(default)]
     pub general: GeneralConfig,
-    
+
     #[serde(default)]
     pub notifications: NotificationConfig,
-    
+
     #[serde(default)]
     pub performance: PerformanceConfig,
-    
+
     #[serde(default)]
     pub modules: ModuleConfig,
-    
+
     #[serde(default)]
     pub colors: ColorOverrides,
-    
+
     #[serde(default)]
     pub cache: CacheConfig,
-    
+
     #[serde(default)]
     pub logging: LoggingConfig,
-    
+
     #[serde(default)]
     pub theme_profiles: ThemeProfiles,
 }
@@ -35,19 +34,19 @@ pub struct Config {
 pub struct GeneralConfig {
     #[serde(default = "default_wallpaper")]
     pub wallpaper: String,
-    
+
     #[serde(default = "default_mode")]
     pub default_mode: ThemeMode,
-    
+
     #[serde(default = "default_scheme_type")]
     pub scheme_type: String,
-    
+
     #[serde(default = "default_true")]
     pub use_matugen: bool,
-    
+
     #[serde(default = "default_light_colors")]
     pub default_light_colors: String,
-    
+
     #[serde(default = "default_dark_colors")]
     pub default_dark_colors: String,
 }
@@ -56,10 +55,10 @@ pub struct GeneralConfig {
 pub struct NotificationConfig {
     #[serde(default = "default_true")]
     pub enabled: bool,
-    
+
     #[serde(default = "default_notification_timeout")]
     pub timeout: i32,
-    
+
     #[serde(default)]
     pub show_module_progress: bool,
 }
@@ -68,13 +67,12 @@ pub struct NotificationConfig {
 pub struct PerformanceConfig {
     #[serde(default = "default_timeout")]
     pub timeout: u64,
-    
+
     #[serde(default = "default_slow_threshold")]
     pub slow_module_threshold: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ModuleConfig {
     #[serde(flatten)]
     pub modules: HashMap<String, ModuleSetting>,
@@ -84,10 +82,10 @@ pub struct ModuleConfig {
 pub struct ModuleSetting {
     #[serde(default = "default_true")]
     pub enabled: bool,
-    
+
     #[serde(default)]
     pub restart: bool,
-    
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
 }
@@ -102,7 +100,7 @@ pub struct ColorOverrides {
 pub struct CacheConfig {
     #[serde(default = "default_true")]
     pub enabled: bool,
-    
+
     #[serde(default = "default_cache_dir")]
     pub dir: String,
 }
@@ -111,20 +109,19 @@ pub struct CacheConfig {
 pub struct LoggingConfig {
     #[serde(default = "default_log_level")]
     pub level: String,
-    
+
     #[serde(default = "default_log_file")]
     pub log_file: String,
-    
+
     #[serde(default = "default_max_log_size")]
     pub max_log_size: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ThemeProfiles {
     #[serde(default)]
     pub light: ThemeProfile,
-    
+
     #[serde(default)]
     pub dark: ThemeProfile,
 }
@@ -133,34 +130,34 @@ pub struct ThemeProfiles {
 pub struct ThemeProfile {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub gtk_theme: Option<String>,
-    
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub gtk_icon_theme: Option<String>,
-    
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cursor_theme: Option<String>,
-    
+
     #[serde(default = "default_cursor_size")]
     pub cursor_size: u32,
-    
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub terminal_font: Option<String>,
-    
+
     #[serde(default = "default_font_size")]
     pub terminal_font_size: u32,
-    
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub system_font: Option<String>,
-    
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub vscode_theme: Option<String>,
-    
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub neovim_colorscheme: Option<String>,
-    
+
     #[serde(default = "default_opacity")]
     pub terminal_opacity: f32,
-    
+
     #[serde(default)]
     pub window_blur: bool,
 }
@@ -198,7 +195,6 @@ impl Default for PerformanceConfig {
     }
 }
 
-
 impl Default for CacheConfig {
     fn default() -> Self {
         Self {
@@ -217,8 +213,6 @@ impl Default for LoggingConfig {
         }
     }
 }
-
-
 
 // Default value functions
 fn default_wallpaper() -> String {
@@ -304,33 +298,33 @@ impl Config {
             ("general", "use_matugen") => "Enable automatic color generation from wallpaper using matugen",
             ("general", "default_light_colors") => "Path to fallback color JSON for light mode when matugen disabled",
             ("general", "default_dark_colors") => "Path to fallback color JSON for dark mode when matugen disabled",
-            
+
             // Notifications
             ("notifications", "enabled") => "Show desktop notifications when theme changes",
             ("notifications", "timeout") => "Notification display duration in milliseconds (default: 5000)",
             ("notifications", "show_module_progress") => "Show individual notification for each module being applied",
-            
+
             // Performance
             ("performance", "timeout") => "Maximum seconds to wait for each module to complete (default: 10)",
             ("performance", "slow_module_threshold") => "Log warning if any module takes longer than this in milliseconds (default: 250)",
-            
+
             // Cache
             ("cache", "enabled") => "Cache matugen color generation results to speed up repeated theme switches",
             ("cache", "dir") => "Directory to store cached color schemes (supports ~)",
-            
+
             // Logging
             ("logging", "level") => "Log verbosity level: debug, info, warn, error",
             ("logging", "log_file") => "Path to log file for debugging (supports ~)",
             ("logging", "max_log_size") => "Maximum log file size in megabytes before rotation",
-            
+
             _ => "No description available",
         }
     }
-    
+
     /// Load config from file, falling back to defaults
     pub fn load() -> Result<Self> {
         let config_path = Self::config_path()?;
-        
+
         // No config file: run on defaults. Writing one is `lmtt init`'s job —
         // load() must not have side effects (read-only commands like `status`
         // shouldn't create files).
@@ -360,7 +354,7 @@ impl Config {
 
         Ok(config)
     }
-    
+
     /// Quote a string as a TOML value, escaping quotes/backslashes so the
     /// saved file always re-parses (paths may contain `"` or `\`).
     fn toml_quote(s: &str) -> String {
@@ -370,56 +364,107 @@ impl Config {
     /// Save config to file with descriptive comments
     pub fn save(&self) -> Result<()> {
         let config_path = Self::config_path()?;
-        
+
         if let Some(parent) = config_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        
+
         let mut output = String::new();
-        
+
         // Header
         output.push_str("# LMTT (Linux Multi-Theme Toggle) Configuration\n");
         output.push_str("# This file is auto-generated but safe to edit manually\n\n");
-        
+
         // General section
         output.push_str("[general]\n");
-        output.push_str(&format!("# {}\n", Self::get_field_description("general", "wallpaper")));
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("general", "wallpaper")
+        ));
         output.push_str(&format!("wallpaper = \"{}\"\n\n", self.general.wallpaper));
-        
-        output.push_str(&format!("# {}\n", Self::get_field_description("general", "default_mode")));
-        output.push_str(&format!("default_mode = \"{}\"\n\n", self.general.default_mode));
-        
-        output.push_str(&format!("# {}\n", Self::get_field_description("general", "scheme_type")));
-        output.push_str(&format!("scheme_type = \"{}\"\n\n", self.general.scheme_type));
-        
-        output.push_str(&format!("# {}\n", Self::get_field_description("general", "use_matugen")));
+
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("general", "default_mode")
+        ));
+        output.push_str(&format!(
+            "default_mode = \"{}\"\n\n",
+            self.general.default_mode
+        ));
+
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("general", "scheme_type")
+        ));
+        output.push_str(&format!(
+            "scheme_type = \"{}\"\n\n",
+            self.general.scheme_type
+        ));
+
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("general", "use_matugen")
+        ));
         output.push_str(&format!("use_matugen = {}\n\n", self.general.use_matugen));
-        
-        output.push_str(&format!("# {}\n", Self::get_field_description("general", "default_light_colors")));
-        output.push_str(&format!("default_light_colors = \"{}\"\n\n", self.general.default_light_colors));
-        
-        output.push_str(&format!("# {}\n", Self::get_field_description("general", "default_dark_colors")));
-        output.push_str(&format!("default_dark_colors = \"{}\"\n\n", self.general.default_dark_colors));
-        
+
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("general", "default_light_colors")
+        ));
+        output.push_str(&format!(
+            "default_light_colors = \"{}\"\n\n",
+            self.general.default_light_colors
+        ));
+
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("general", "default_dark_colors")
+        ));
+        output.push_str(&format!(
+            "default_dark_colors = \"{}\"\n\n",
+            self.general.default_dark_colors
+        ));
+
         // Notifications section
         output.push_str("[notifications]\n");
-        output.push_str(&format!("# {}\n", Self::get_field_description("notifications", "enabled")));
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("notifications", "enabled")
+        ));
         output.push_str(&format!("enabled = {}\n\n", self.notifications.enabled));
-        
-        output.push_str(&format!("# {}\n", Self::get_field_description("notifications", "timeout")));
+
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("notifications", "timeout")
+        ));
         output.push_str(&format!("timeout = {}\n\n", self.notifications.timeout));
-        
-        output.push_str(&format!("# {}\n", Self::get_field_description("notifications", "show_module_progress")));
-        output.push_str(&format!("show_module_progress = {}\n\n", self.notifications.show_module_progress));
-        
+
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("notifications", "show_module_progress")
+        ));
+        output.push_str(&format!(
+            "show_module_progress = {}\n\n",
+            self.notifications.show_module_progress
+        ));
+
         // Performance section
         output.push_str("[performance]\n");
-        output.push_str(&format!("# {}\n", Self::get_field_description("performance", "timeout")));
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("performance", "timeout")
+        ));
         output.push_str(&format!("timeout = {}\n\n", self.performance.timeout));
-        
-        output.push_str(&format!("# {}\n", Self::get_field_description("performance", "slow_module_threshold")));
-        output.push_str(&format!("slow_module_threshold = {}\n\n", self.performance.slow_module_threshold));
-        
+
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("performance", "slow_module_threshold")
+        ));
+        output.push_str(&format!(
+            "slow_module_threshold = {}\n\n",
+            self.performance.slow_module_threshold
+        ));
+
         // Modules section
         output.push_str("[modules]\n");
         if self.modules.modules.is_empty() {
@@ -439,26 +484,41 @@ impl Config {
                 output.push('\n');
             }
         }
-        
+
         // Cache section
         output.push_str("[cache]\n");
-        output.push_str(&format!("# {}\n", Self::get_field_description("cache", "enabled")));
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("cache", "enabled")
+        ));
         output.push_str(&format!("enabled = {}\n\n", self.cache.enabled));
-        
-        output.push_str(&format!("# {}\n", Self::get_field_description("cache", "dir")));
+
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("cache", "dir")
+        ));
         output.push_str(&format!("dir = \"{}\"\n\n", self.cache.dir));
-        
+
         // Logging section
         output.push_str("[logging]\n");
-        output.push_str(&format!("# {}\n", Self::get_field_description("logging", "level")));
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("logging", "level")
+        ));
         output.push_str(&format!("level = \"{}\"\n\n", self.logging.level));
-        
-        output.push_str(&format!("# {}\n", Self::get_field_description("logging", "log_file")));
+
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("logging", "log_file")
+        ));
         output.push_str(&format!("log_file = \"{}\"\n\n", self.logging.log_file));
-        
-        output.push_str(&format!("# {}\n", Self::get_field_description("logging", "max_log_size")));
+
+        output.push_str(&format!(
+            "# {}\n",
+            Self::get_field_description("logging", "max_log_size")
+        ));
         output.push_str(&format!("max_log_size = {}\n\n", self.logging.max_log_size));
-        
+
         // Theme profiles section
         output.push_str("[theme_profiles.light]\n");
         output.push_str("# Theme profile settings for light mode\n");
@@ -471,11 +531,17 @@ impl Config {
         if let Some(cursor) = &self.theme_profiles.light.cursor_theme {
             output.push_str(&format!("cursor_theme = {}\n", Self::toml_quote(cursor)));
         }
-        output.push_str(&format!("cursor_size = {}\n", self.theme_profiles.light.cursor_size));
+        output.push_str(&format!(
+            "cursor_size = {}\n",
+            self.theme_profiles.light.cursor_size
+        ));
         if let Some(font) = &self.theme_profiles.light.terminal_font {
             output.push_str(&format!("terminal_font = {}\n", Self::toml_quote(font)));
         }
-        output.push_str(&format!("terminal_font_size = {}\n", self.theme_profiles.light.terminal_font_size));
+        output.push_str(&format!(
+            "terminal_font_size = {}\n",
+            self.theme_profiles.light.terminal_font_size
+        ));
         if let Some(sys_font) = &self.theme_profiles.light.system_font {
             output.push_str(&format!("system_font = {}\n", Self::toml_quote(sys_font)));
         }
@@ -483,11 +549,20 @@ impl Config {
             output.push_str(&format!("vscode_theme = {}\n", Self::toml_quote(vscode)));
         }
         if let Some(nvim) = &self.theme_profiles.light.neovim_colorscheme {
-            output.push_str(&format!("neovim_colorscheme = {}\n", Self::toml_quote(nvim)));
+            output.push_str(&format!(
+                "neovim_colorscheme = {}\n",
+                Self::toml_quote(nvim)
+            ));
         }
-        output.push_str(&format!("terminal_opacity = {}\n", self.theme_profiles.light.terminal_opacity));
-        output.push_str(&format!("window_blur = {}\n\n", self.theme_profiles.light.window_blur));
-        
+        output.push_str(&format!(
+            "terminal_opacity = {}\n",
+            self.theme_profiles.light.terminal_opacity
+        ));
+        output.push_str(&format!(
+            "window_blur = {}\n\n",
+            self.theme_profiles.light.window_blur
+        ));
+
         output.push_str("[theme_profiles.dark]\n");
         output.push_str("# Theme profile settings for dark mode\n");
         if let Some(gtk) = &self.theme_profiles.dark.gtk_theme {
@@ -499,11 +574,17 @@ impl Config {
         if let Some(cursor) = &self.theme_profiles.dark.cursor_theme {
             output.push_str(&format!("cursor_theme = {}\n", Self::toml_quote(cursor)));
         }
-        output.push_str(&format!("cursor_size = {}\n", self.theme_profiles.dark.cursor_size));
+        output.push_str(&format!(
+            "cursor_size = {}\n",
+            self.theme_profiles.dark.cursor_size
+        ));
         if let Some(font) = &self.theme_profiles.dark.terminal_font {
             output.push_str(&format!("terminal_font = {}\n", Self::toml_quote(font)));
         }
-        output.push_str(&format!("terminal_font_size = {}\n", self.theme_profiles.dark.terminal_font_size));
+        output.push_str(&format!(
+            "terminal_font_size = {}\n",
+            self.theme_profiles.dark.terminal_font_size
+        ));
         if let Some(sys_font) = &self.theme_profiles.dark.system_font {
             output.push_str(&format!("system_font = {}\n", Self::toml_quote(sys_font)));
         }
@@ -511,48 +592,64 @@ impl Config {
             output.push_str(&format!("vscode_theme = {}\n", Self::toml_quote(vscode)));
         }
         if let Some(nvim) = &self.theme_profiles.dark.neovim_colorscheme {
-            output.push_str(&format!("neovim_colorscheme = {}\n", Self::toml_quote(nvim)));
+            output.push_str(&format!(
+                "neovim_colorscheme = {}\n",
+                Self::toml_quote(nvim)
+            ));
         }
-        output.push_str(&format!("terminal_opacity = {}\n", self.theme_profiles.dark.terminal_opacity));
-        output.push_str(&format!("window_blur = {}\n", self.theme_profiles.dark.window_blur));
-        
+        output.push_str(&format!(
+            "terminal_opacity = {}\n",
+            self.theme_profiles.dark.terminal_opacity
+        ));
+        output.push_str(&format!(
+            "window_blur = {}\n",
+            self.theme_profiles.dark.window_blur
+        ));
+
         // Color overrides section
         if !self.colors.colors.is_empty() {
             output.push_str("\n[colors]\n");
             output.push_str("# Custom color overrides\n");
             for (key, value) in &self.colors.colors {
-                output.push_str(&format!("{} = {}\n", Self::toml_quote(key), Self::toml_quote(value)));
+                output.push_str(&format!(
+                    "{} = {}\n",
+                    Self::toml_quote(key),
+                    Self::toml_quote(value)
+                ));
             }
         }
-        
+
         std::fs::write(&config_path, output)?;
         Ok(())
     }
-    
+
     /// Get config file path
     pub fn config_path() -> Result<PathBuf> {
         Ok(crate::paths::user_config_dir()?.join("config.toml"))
     }
-    
+
     /// Check if a module is enabled (enabled by default, returns true if not in config)
     pub fn is_module_enabled(&self, module_name: &str) -> bool {
-        self.modules.modules
+        self.modules
+            .modules
             .get(module_name)
             .map(|m| m.enabled)
             .unwrap_or(true) // Default to enabled if not in config
     }
-    
+
     /// Check if a module should restart
     pub fn should_module_restart(&self, module_name: &str) -> bool {
-        self.modules.modules
+        self.modules
+            .modules
             .get(module_name)
             .map(|m| m.restart)
             .unwrap_or(false)
     }
-    
+
     /// Get custom command for a module
     pub fn module_command(&self, module_name: &str) -> Option<&str> {
-        self.modules.modules
+        self.modules
+            .modules
             .get(module_name)
             .and_then(|m| m.command.as_deref())
     }
@@ -654,8 +751,14 @@ mod tests {
     #[test]
     fn expand_env_vars_is_multibyte_safe() {
         // Byte-offset slicing on these panicked in the old implementation
-        assert_eq!(expand_env_vars("~/Bilder/wald-über.png"), "~/Bilder/wald-über.png");
-        assert_eq!(expand_env_vars("émoji 🎨 $UNSET_LMTT_VAR ü"), "émoji 🎨 $UNSET_LMTT_VAR ü");
+        assert_eq!(
+            expand_env_vars("~/Bilder/wald-über.png"),
+            "~/Bilder/wald-über.png"
+        );
+        assert_eq!(
+            expand_env_vars("émoji 🎨 $UNSET_LMTT_VAR ü"),
+            "émoji 🎨 $UNSET_LMTT_VAR ü"
+        );
     }
 
     #[test]

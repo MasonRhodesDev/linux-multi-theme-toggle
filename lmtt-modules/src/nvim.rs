@@ -1,4 +1,4 @@
-use crate::{ThemeModule, ConfigFileInfo};
+use crate::{ConfigFileInfo, ThemeModule};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result, ThemeMode};
 use std::path::PathBuf;
@@ -32,10 +32,14 @@ async fn find_nvim_sockets() -> Vec<PathBuf> {
     roots.push(std::env::temp_dir());
 
     for root in roots {
-        let Ok(mut entries) = tokio::fs::read_dir(&root).await else { continue };
+        let Ok(mut entries) = tokio::fs::read_dir(&root).await else {
+            continue;
+        };
         while let Ok(Some(entry)) = entries.next_entry().await {
             let path = entry.path();
-            let Some(name) = path.file_name().and_then(|n| n.to_str()) else { continue };
+            let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+                continue;
+            };
             if !name.starts_with("nvim") {
                 continue;
             }
@@ -46,14 +50,19 @@ async fn find_nvim_sockets() -> Vec<PathBuf> {
                     sockets.push(direct);
                     continue;
                 }
-                let Ok(mut inner) = tokio::fs::read_dir(&path).await else { continue };
+                let Ok(mut inner) = tokio::fs::read_dir(&path).await else {
+                    continue;
+                };
                 while let Ok(Some(sub)) = inner.next_entry().await {
                     let sub_path = sub.path();
                     if sub_path.is_dir() {
-                        let Ok(mut leaf) = tokio::fs::read_dir(&sub_path).await else { continue };
+                        let Ok(mut leaf) = tokio::fs::read_dir(&sub_path).await else {
+                            continue;
+                        };
                         while let Ok(Some(f)) = leaf.next_entry().await {
                             let p = f.path();
-                            if p.file_name().and_then(|n| n.to_str())
+                            if p.file_name()
+                                .and_then(|n| n.to_str())
                                 .map(|n| n.starts_with("nvim.") && n.ends_with(".0"))
                                 .unwrap_or(false)
                             {
@@ -96,11 +105,18 @@ impl ThemeModule for NvimModule {
         // The colorscheme name is interpolated into a Vimscript string sent to
         // every running nvim — reject anything that isn't a plain scheme name
         // so a value with a quote can't break the expression or inject code.
-        let colorscheme = profile
+        let colorscheme = profile.neovim_colorscheme.as_deref().filter(|cs| {
+            !cs.is_empty()
+                && cs
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || matches!(c, '-' | '_'))
+        });
+        if profile
             .neovim_colorscheme
             .as_deref()
-            .filter(|cs| !cs.is_empty() && cs.chars().all(|c| c.is_alphanumeric() || matches!(c, '-' | '_')));
-        if profile.neovim_colorscheme.as_deref().is_some_and(|cs| !cs.is_empty()) && colorscheme.is_none() {
+            .is_some_and(|cs| !cs.is_empty())
+            && colorscheme.is_none()
+        {
             tracing::warn!(
                 "[Nvim] Ignoring unsafe neovim_colorscheme {:?} (allowed: letters, digits, - and _)",
                 profile.neovim_colorscheme
@@ -124,8 +140,13 @@ impl ThemeModule for NvimModule {
             // block until the registry timeout. kill_on_drop reaps the client
             // when the per-socket timeout fires instead of leaking it.
             let mut cmd = tokio::process::Command::new("nvim");
-            cmd.arg("--server").arg(&socket).arg("--remote-expr").arg(&expr).kill_on_drop(true);
-            let result = tokio::time::timeout(std::time::Duration::from_secs(2), cmd.output()).await;
+            cmd.arg("--server")
+                .arg(&socket)
+                .arg("--remote-expr")
+                .arg(&expr)
+                .kill_on_drop(true);
+            let result =
+                tokio::time::timeout(std::time::Duration::from_secs(2), cmd.output()).await;
 
             // Command::output() is Ok even when nvim exits non-zero — only a
             // successful exit means the expression actually ran.

@@ -1,4 +1,4 @@
-use crate::{ThemeModule, ConfigFileInfo};
+use crate::{ConfigFileInfo, ThemeModule};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result, ThemeMode};
 
@@ -172,7 +172,11 @@ fn scan_value_end(b: &[u8], start: usize) -> Option<usize> {
         return None;
     }
     // Scalar (number / true / false / null): ends at the next , } ] or trivia.
-    while i < b.len() && !matches!(b[i], b',' | b'}' | b']') && !b[i].is_ascii_whitespace() && b[i] != b'/' {
+    while i < b.len()
+        && !matches!(b[i], b',' | b'}' | b']')
+        && !b[i].is_ascii_whitespace()
+        && b[i] != b'/'
+    {
         i += 1;
     }
     Some(i)
@@ -198,8 +202,7 @@ impl ThemeModule for VSCodeModule {
     }
 
     async fn apply(&self, scheme: &ColorScheme, config: &Config) -> Result<()> {
-        let home = dirs::home_dir()
-            .ok_or(lmtt_core::Error::Config("No home dir".into()))?;
+        let home = dirs::home_dir().ok_or(lmtt_core::Error::Config("No home dir".into()))?;
 
         let settings_paths = vec![
             home.join(".config/Code/User/settings.json"),
@@ -217,7 +220,11 @@ impl ThemeModule for VSCodeModule {
         };
 
         let theme = profile.vscode_theme.as_deref().unwrap_or({
-            if is_light { "Default Light+" } else { "Default Dark+" }
+            if is_light {
+                "Default Light+"
+            } else {
+                "Default Dark+"
+            }
         });
 
         let mut updated_count = 0;
@@ -311,8 +318,14 @@ mod tests {
         // must not anchor there and corrupt the following setting.
         let content = "{\n  \"settingsSync.ignoredSettings\": [\"workbench.colorTheme\"],\n  \"editor.fontFamily\": \"Fira Code\",\n  \"workbench.colorTheme\": \"Old\"\n}\n";
         let out = set_string_key(content, THEME_KEY, "New").unwrap();
-        assert!(out.contains("\"editor.fontFamily\": \"Fira Code\""), "fontFamily must be untouched: {out}");
-        assert!(out.contains("[\"workbench.colorTheme\"]"), "ignoredSettings array untouched: {out}");
+        assert!(
+            out.contains("\"editor.fontFamily\": \"Fira Code\""),
+            "fontFamily must be untouched: {out}"
+        );
+        assert!(
+            out.contains("[\"workbench.colorTheme\"]"),
+            "ignoredSettings array untouched: {out}"
+        );
         assert!(out.contains("\"workbench.colorTheme\": \"New\""));
         assert!(!out.contains("\"Old\""));
     }
@@ -321,7 +334,10 @@ mod tests {
     fn ignores_key_inside_comment() {
         let content = "{\n  // \"workbench.colorTheme\": \"commented\",\n  \"workbench.colorTheme\": \"Real\"\n}\n";
         let out = set_string_key(content, THEME_KEY, "New").unwrap();
-        assert!(out.contains("// \"workbench.colorTheme\": \"commented\""), "comment preserved: {out}");
+        assert!(
+            out.contains("// \"workbench.colorTheme\": \"commented\""),
+            "comment preserved: {out}"
+        );
         assert!(out.contains("\"workbench.colorTheme\": \"New\""));
         assert!(!out.contains("\"Real\""));
     }
@@ -332,8 +348,14 @@ mod tests {
         // and the following key/value must be left intact.
         let content = "{ \"workbench.colorTheme\": null, \"editor.fontSize\": 14 }";
         let out = set_string_key(content, THEME_KEY, "Default Dark+").unwrap();
-        assert!(out.contains("\"workbench.colorTheme\": \"Default Dark+\""), "{out}");
-        assert!(out.contains("\"editor.fontSize\": 14"), "fontSize preserved: {out}");
+        assert!(
+            out.contains("\"workbench.colorTheme\": \"Default Dark+\""),
+            "{out}"
+        );
+        assert!(
+            out.contains("\"editor.fontSize\": 14"),
+            "fontSize preserved: {out}"
+        );
         assert!(!out.contains("null"));
     }
 
@@ -342,6 +364,9 @@ mod tests {
         let content = "// see { docs } here\n{\n  \"editor.fontSize\": 14\n}\n";
         let out = set_string_key(content, THEME_KEY, "T").unwrap();
         // Inserted key must be inside the real object, after the real brace
-        assert!(out.contains("// see { docs } here\n{\n  \"workbench.colorTheme\": \"T\","), "{out}");
+        assert!(
+            out.contains("// see { docs } here\n{\n  \"workbench.colorTheme\": \"T\","),
+            "{out}"
+        );
     }
 }

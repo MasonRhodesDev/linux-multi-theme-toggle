@@ -1,8 +1,8 @@
+use crate::{Config, Result, ThemeMode};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use sha2::{Sha256, Digest};
-use crate::{Config, Result, ThemeMode};
 
 pub struct Cache {
     cache_dir: PathBuf,
@@ -15,7 +15,10 @@ pub struct Cache {
 impl Cache {
     pub fn new(cache_dir: PathBuf) -> Result<Self> {
         std::fs::create_dir_all(&cache_dir)?;
-        Ok(Self { cache_dir, hash_memo: Mutex::new(HashMap::new()) })
+        Ok(Self {
+            cache_dir,
+            hash_memo: Mutex::new(HashMap::new()),
+        })
     }
 
     /// Create cache from config (cache.dir is already tilde-expanded by Config::load)
@@ -64,7 +67,9 @@ impl Cache {
         mode: &str,
         scheme_type: &str,
     ) -> Result<Option<HashMap<String, String>>> {
-        let cache_file = self.colors_cache_file(wallpaper_path, mode, scheme_type).await?;
+        let cache_file = self
+            .colors_cache_file(wallpaper_path, mode, scheme_type)
+            .await?;
 
         let content = match tokio::fs::read_to_string(&cache_file).await {
             Ok(content) => content,
@@ -74,7 +79,11 @@ impl Cache {
         match serde_json::from_str(&content) {
             Ok(colors) => Ok(Some(colors)),
             Err(e) => {
-                tracing::debug!("Ignoring corrupt color cache {}: {}", cache_file.display(), e);
+                tracing::debug!(
+                    "Ignoring corrupt color cache {}: {}",
+                    cache_file.display(),
+                    e
+                );
                 Ok(None)
             }
         }
@@ -88,7 +97,9 @@ impl Cache {
         scheme_type: &str,
         colors: &HashMap<String, String>,
     ) -> Result<()> {
-        let cache_file = self.colors_cache_file(wallpaper_path, mode, scheme_type).await?;
+        let cache_file = self
+            .colors_cache_file(wallpaper_path, mode, scheme_type)
+            .await?;
         let json = serde_json::to_string(colors)
             .map_err(|e| crate::Error::Config(format!("Failed to serialize colors: {}", e)))?;
         crate::fsutil::write_atomic(&cache_file, json).await
@@ -102,6 +113,9 @@ impl Cache {
     ) -> Result<PathBuf> {
         let hash = self.wallpaper_hash(wallpaper_path).await?;
         let hash_prefix = &hash[..16];
-        Ok(self.cache_dir.join(format!("colors_{}_{}_{}.json", hash_prefix, mode, scheme_type)))
+        Ok(self.cache_dir.join(format!(
+            "colors_{}_{}_{}.json",
+            hash_prefix, mode, scheme_type
+        )))
     }
 }

@@ -19,14 +19,23 @@ pub fn hex_to_rgb(hex: &str) -> Result<(u8, u8, u8), String> {
         return Err(format!("Invalid hex color: {}", hex));
     }
 
-    let parse = |s: &str| u8::from_str_radix(s, 16).map_err(|_| format!("Invalid hex color: {}", hex));
+    let parse =
+        |s: &str| u8::from_str_radix(s, 16).map_err(|_| format!("Invalid hex color: {}", hex));
 
     match digits.len() {
         3 => {
             let expand = |s: &str| parse(s).map(|v| v * 17); // "a" -> 0xaa
-            Ok((expand(&digits[0..1])?, expand(&digits[1..2])?, expand(&digits[2..3])?))
+            Ok((
+                expand(&digits[0..1])?,
+                expand(&digits[1..2])?,
+                expand(&digits[2..3])?,
+            ))
         }
-        6 | 8 => Ok((parse(&digits[0..2])?, parse(&digits[2..4])?, parse(&digits[4..6])?)),
+        6 | 8 => Ok((
+            parse(&digits[0..2])?,
+            parse(&digits[2..4])?,
+            parse(&digits[4..6])?,
+        )),
         _ => Err(format!("Invalid hex color: {}", hex)),
     }
 }
@@ -68,8 +77,8 @@ pub fn nearest_gnome_accent(hex: &str) -> Option<&'static str> {
 /// - v3 actual: { "colors": { "dark": { "primary": "#xxx", ... }, "light": { ... } } }
 /// - v3 legacy:  { "colors": { "primary": { "dark": "#xxx", "light": "#yyy" }, ... } }
 pub fn parse_matugen_colors(json: &str, mode: &str) -> Result<HashMap<String, String>, String> {
-    let value: serde_json::Value = serde_json::from_str(json)
-        .map_err(|e| format!("Failed to parse matugen JSON: {}", e))?;
+    let value: serde_json::Value =
+        serde_json::from_str(json).map_err(|e| format!("Failed to parse matugen JSON: {}", e))?;
 
     let colors = value
         .get("colors")

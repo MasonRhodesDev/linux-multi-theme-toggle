@@ -1,6 +1,6 @@
-use crate::{ThemeModule, ConfigFileInfo};
+use crate::{ConfigFileInfo, ThemeModule};
 use async_trait::async_trait;
-use lmtt_core::{ColorScheme, Config, Result, ThemeMode, find_icon_theme_variant};
+use lmtt_core::{find_icon_theme_variant, ColorScheme, Config, Result, ThemeMode};
 
 crate::register_module!(GtkModule);
 
@@ -46,7 +46,9 @@ async fn gsettings_set(key: &str, value: &str) -> Result<()> {
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(lmtt_core::Error::Module(format!(
-            "gsettings set {} failed: {}", key, stderr.trim()
+            "gsettings set {} failed: {}",
+            key,
+            stderr.trim()
         )));
     }
     Ok(())
@@ -131,7 +133,7 @@ impl ThemeModule for GtkModule {
     }
 
     fn priority(&self) -> u8 {
-        10  // Platform module - run first
+        10 // Platform module - run first
     }
 
     async fn apply(&self, scheme: &ColorScheme, config: &Config) -> Result<()> {
@@ -171,9 +173,9 @@ impl ThemeModule for GtkModule {
                 .ok()
                 .and_then(|o| {
                     if o.status.success() {
-                        String::from_utf8(o.stdout).ok().map(|s| {
-                            s.trim().trim_matches('\'').to_string()
-                        })
+                        String::from_utf8(o.stdout)
+                            .ok()
+                            .map(|s| s.trim().trim_matches('\'').to_string())
                     } else {
                         None
                     }
@@ -181,8 +183,7 @@ impl ThemeModule for GtkModule {
 
             match current {
                 Some(current_theme) => {
-                    find_icon_theme_variant(&current_theme, mode)
-                        .unwrap_or(current_theme)
+                    find_icon_theme_variant(&current_theme, mode).unwrap_or(current_theme)
                 }
                 None => "Adwaita".to_string(),
             }
@@ -219,8 +220,7 @@ impl ThemeModule for GtkModule {
         // window open. Merge into the existing file — users keep font,
         // hinting, and any other keys they've configured.
         let prefer_dark = matches!(mode, ThemeMode::Dark);
-        let home = dirs::home_dir()
-            .ok_or(lmtt_core::Error::Config("No home dir".into()))?;
+        let home = dirs::home_dir().ok_or(lmtt_core::Error::Config("No home dir".into()))?;
 
         let mut gtk3_updates = vec![
             ("gtk-theme-name", theme.to_string()),
@@ -236,26 +236,43 @@ impl ThemeModule for GtkModule {
             gtk4_settings_updates.push(("gtk-cursor-theme-name", cursor_theme.clone()));
             if profile.cursor_size > 0 {
                 gtk3_updates.push(("gtk-cursor-theme-size", profile.cursor_size.to_string()));
-                gtk4_settings_updates.push(("gtk-cursor-theme-size", profile.cursor_size.to_string()));
+                gtk4_settings_updates
+                    .push(("gtk-cursor-theme-size", profile.cursor_size.to_string()));
             }
         }
 
         let gtk3_path = home.join(".config/gtk-3.0/settings.ini");
         tokio::fs::create_dir_all(gtk3_path.parent().unwrap()).await?;
-        let gtk3_current = tokio::fs::read_to_string(&gtk3_path).await.unwrap_or_default();
+        let gtk3_current = tokio::fs::read_to_string(&gtk3_path)
+            .await
+            .unwrap_or_default();
         let gtk3_content = merge_ini(&gtk3_current, "Settings", &gtk3_updates);
         lmtt_core::fsutil::write_atomic(&gtk3_path, gtk3_content).await?;
 
         let gtk4_path = home.join(".config/gtk-4.0/settings.ini");
         tokio::fs::create_dir_all(gtk4_path.parent().unwrap()).await?;
-        let gtk4_current = tokio::fs::read_to_string(&gtk4_path).await.unwrap_or_default();
-        let adw_scheme = if prefer_dark { "ADW_COLOR_SCHEME_PREFER_DARK" } else { "ADW_COLOR_SCHEME_PREFER_LIGHT" };
+        let gtk4_current = tokio::fs::read_to_string(&gtk4_path)
+            .await
+            .unwrap_or_default();
+        let adw_scheme = if prefer_dark {
+            "ADW_COLOR_SCHEME_PREFER_DARK"
+        } else {
+            "ADW_COLOR_SCHEME_PREFER_LIGHT"
+        };
         let gtk4_content = merge_ini(&gtk4_current, "Settings", &gtk4_settings_updates);
-        let gtk4_content = merge_ini(&gtk4_content, "AdwStyleManager", &[("color-scheme", adw_scheme.to_string())]);
+        let gtk4_content = merge_ini(
+            &gtk4_content,
+            "AdwStyleManager",
+            &[("color-scheme", adw_scheme.to_string())],
+        );
         lmtt_core::fsutil::write_atomic(&gtk4_path, gtk4_content).await?;
 
-        tracing::info!("[GTK] Set gtk-theme to {}, icon-theme to {}, color-scheme to {}",
-            theme, icon_theme, preference);
+        tracing::info!(
+            "[GTK] Set gtk-theme to {}, icon-theme to {}, color-scheme to {}",
+            theme,
+            icon_theme,
+            preference
+        );
 
         Ok(())
     }
@@ -273,10 +290,14 @@ mod tests {
     #[test]
     fn preserves_user_keys_and_comments() {
         let existing = "# my settings\n[Settings]\ngtk-font-name = Sans 11\ngtk-theme-name = Old\n\n[Other]\nkey = 1\n";
-        let merged = merge_ini(existing, "Settings", &[
-            ("gtk-theme-name", "New".to_string()),
-            ("gtk-icon-theme-name", "Icons".to_string()),
-        ]);
+        let merged = merge_ini(
+            existing,
+            "Settings",
+            &[
+                ("gtk-theme-name", "New".to_string()),
+                ("gtk-icon-theme-name", "Icons".to_string()),
+            ],
+        );
         assert!(merged.contains("# my settings"));
         assert!(merged.contains("gtk-font-name = Sans 11"));
         assert!(merged.contains("gtk-theme-name = New"));
@@ -307,10 +328,21 @@ mod tests {
         // GKeyFile takes the LAST occurrence; a stale later duplicate must be
         // dropped, not left to override the rewritten first one.
         let existing = "[Settings]\ngtk-theme-name = Adwaita\ngtk-font-name = Sans 11\ngtk-theme-name = Materia-dark\n";
-        let merged = merge_ini(existing, "Settings", &[("gtk-theme-name", "New".to_string())]);
-        assert_eq!(merged.matches("gtk-theme-name").count(), 1, "exactly one occurrence: {merged}");
+        let merged = merge_ini(
+            existing,
+            "Settings",
+            &[("gtk-theme-name", "New".to_string())],
+        );
+        assert_eq!(
+            merged.matches("gtk-theme-name").count(),
+            1,
+            "exactly one occurrence: {merged}"
+        );
         assert!(merged.contains("gtk-theme-name = New"));
-        assert!(!merged.contains("Materia-dark"), "stale duplicate removed: {merged}");
+        assert!(
+            !merged.contains("Materia-dark"),
+            "stale duplicate removed: {merged}"
+        );
         assert!(merged.contains("gtk-font-name = Sans 11"));
     }
 }

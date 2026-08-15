@@ -1,4 +1,4 @@
-use crate::{ThemeModule, ConfigFileInfo};
+use crate::{ConfigFileInfo, ThemeModule};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result};
 
@@ -38,15 +38,21 @@ impl ThemeModule for QtModule {
         // module does is make sure QT_QPA_PLATFORMTHEME points at qt6ct —
         // and only when the session doesn't already define a platform theme,
         // so qt5ct/kvantum users aren't stomped on every switch.
-        let already_set = std::env::var("QT_QPA_PLATFORMTHEME").is_ok()
-            || session_env_has_platformtheme().await;
+        let already_set =
+            std::env::var("QT_QPA_PLATFORMTHEME").is_ok() || session_env_has_platformtheme().await;
 
         if already_set {
             tracing::debug!("[Qt] QT_QPA_PLATFORMTHEME already set, leaving session env alone");
         } else {
             let env_commands = vec![
-                ("systemctl", vec!["--user", "set-environment", "QT_QPA_PLATFORMTHEME=qt6ct"]),
-                ("dbus-update-activation-environment", vec!["--systemd", "QT_QPA_PLATFORMTHEME=qt6ct"]),
+                (
+                    "systemctl",
+                    vec!["--user", "set-environment", "QT_QPA_PLATFORMTHEME=qt6ct"],
+                ),
+                (
+                    "dbus-update-activation-environment",
+                    vec!["--systemd", "QT_QPA_PLATFORMTHEME=qt6ct"],
+                ),
             ];
 
             for (cmd, args) in env_commands {

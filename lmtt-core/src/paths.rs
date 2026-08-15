@@ -39,7 +39,9 @@ mod tests {
     #[test]
     fn shared_module_roots_are_absolute() {
         let dirs = module_search_dirs();
-        assert!(dirs.iter().any(|p| p == &PathBuf::from("/etc/lmtt/modules")));
+        assert!(dirs
+            .iter()
+            .any(|p| p == &PathBuf::from("/etc/lmtt/modules")));
         assert!(dirs
             .iter()
             .any(|p| p == &PathBuf::from("/usr/share/lmtt/modules")));

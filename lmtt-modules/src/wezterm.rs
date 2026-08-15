@@ -1,4 +1,4 @@
-use crate::{ThemeModule, ConfigFileInfo};
+use crate::{ConfigFileInfo, ThemeModule};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result, ThemeMode};
 
@@ -91,7 +91,9 @@ async fn apply_osc_to_panes(osc: &str) {
     let Ok(panes) = serde_json::from_slice::<serde_json::Value>(&output.stdout) else {
         return;
     };
-    let Some(panes) = panes.as_array() else { return };
+    let Some(panes) = panes.as_array() else {
+        return;
+    };
 
     let mut ttys: Vec<&str> = panes
         .iter()
@@ -107,7 +109,11 @@ async fn apply_osc_to_panes(osc: &str) {
         // the whole module until the registry timeout fails the switch.
         let one = async {
             use tokio::io::AsyncWriteExt;
-            let mut f = tokio::fs::OpenOptions::new().write(true).open(tty).await.ok()?;
+            let mut f = tokio::fs::OpenOptions::new()
+                .write(true)
+                .open(tty)
+                .await
+                .ok()?;
             f.write_all(osc.as_bytes()).await.ok()?;
             Some(())
         };
@@ -272,7 +278,10 @@ impl ThemeModule for WeztermModule {
         profile_content.push_str("}\n");
 
         lmtt_core::fsutil::write_atomic(&profile_file, profile_content).await?;
-        tracing::info!("[WezTerm] Updated profile settings at {}", profile_file.display());
+        tracing::info!(
+            "[WezTerm] Updated profile settings at {}",
+            profile_file.display()
+        );
 
         // Recolor RUNNING panes via OSC escape sequences written to each
         // pane's tty — the same live-update path terminals support for
@@ -297,8 +306,8 @@ impl ThemeModule for WeztermModule {
     }
 
     async fn config_files(&self) -> Result<Vec<ConfigFileInfo>> {
-        let config_dir = dirs::config_dir()
-            .ok_or(lmtt_core::Error::Config("No config dir".into()))?;
+        let config_dir =
+            dirs::config_dir().ok_or(lmtt_core::Error::Config("No config dir".into()))?;
 
         let wezterm_lua = config_dir.join("wezterm/wezterm.lua");
 
@@ -313,7 +322,9 @@ impl ThemeModule for WeztermModule {
         Ok(vec![ConfigFileInfo {
             path: wezterm_lua,
             include_line: include_line.to_string(),
-            description: "Require lmtt-colors in wezterm config (apply its values to your returned config)".to_string(),
+            description:
+                "Require lmtt-colors in wezterm config (apply its values to your returned config)"
+                    .to_string(),
             already_included,
         }])
     }

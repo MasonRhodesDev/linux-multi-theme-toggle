@@ -1,4 +1,4 @@
-use crate::{ThemeModule, ConfigFileInfo};
+use crate::{ConfigFileInfo, ThemeModule};
 use async_trait::async_trait;
 use lmtt_core::{ColorScheme, Config, Result};
 
@@ -38,20 +38,62 @@ impl ThemeModule for FishModule {
         // instantly — a conf.d file with set -g only affects new shells, and
         // no signal makes fish re-source conf.d.
         let assignments: Vec<(&str, String)> = vec![
-            ("fish_color_normal", fish_hex(&scheme.get_or_fallback("on_surface"))),
-            ("fish_color_command", fish_hex(&scheme.get_or_fallback("primary"))),
-            ("fish_color_param", fish_hex(&scheme.get_or_fallback("on_surface"))),
-            ("fish_color_redirection", fish_hex(&scheme.get_or_fallback("secondary"))),
-            ("fish_color_comment", fish_hex(&scheme.get_or_fallback("outline"))),
-            ("fish_color_error", fish_hex(&scheme.get_or_fallback("error"))),
-            ("fish_color_escape", fish_hex(&scheme.get_or_fallback("tertiary"))),
-            ("fish_color_operator", fish_hex(&scheme.get_or_fallback("primary"))),
-            ("fish_color_quote", fish_hex(&scheme.get_or_fallback("secondary"))),
-            ("fish_color_autosuggestion", fish_hex(&scheme.get_or_fallback("outline"))),
-            ("fish_pager_color_completion", fish_hex(&scheme.get_or_fallback("on_surface"))),
-            ("fish_pager_color_description", fish_hex(&scheme.get_or_fallback("on_surface_variant"))),
-            ("fish_pager_color_prefix", fish_hex(&scheme.get_or_fallback("primary"))),
-            ("fish_pager_color_progress", fish_hex(&scheme.get_or_fallback("outline"))),
+            (
+                "fish_color_normal",
+                fish_hex(&scheme.get_or_fallback("on_surface")),
+            ),
+            (
+                "fish_color_command",
+                fish_hex(&scheme.get_or_fallback("primary")),
+            ),
+            (
+                "fish_color_param",
+                fish_hex(&scheme.get_or_fallback("on_surface")),
+            ),
+            (
+                "fish_color_redirection",
+                fish_hex(&scheme.get_or_fallback("secondary")),
+            ),
+            (
+                "fish_color_comment",
+                fish_hex(&scheme.get_or_fallback("outline")),
+            ),
+            (
+                "fish_color_error",
+                fish_hex(&scheme.get_or_fallback("error")),
+            ),
+            (
+                "fish_color_escape",
+                fish_hex(&scheme.get_or_fallback("tertiary")),
+            ),
+            (
+                "fish_color_operator",
+                fish_hex(&scheme.get_or_fallback("primary")),
+            ),
+            (
+                "fish_color_quote",
+                fish_hex(&scheme.get_or_fallback("secondary")),
+            ),
+            (
+                "fish_color_autosuggestion",
+                fish_hex(&scheme.get_or_fallback("outline")),
+            ),
+            (
+                "fish_pager_color_completion",
+                fish_hex(&scheme.get_or_fallback("on_surface")),
+            ),
+            (
+                "fish_pager_color_description",
+                fish_hex(&scheme.get_or_fallback("on_surface_variant")),
+            ),
+            (
+                "fish_pager_color_prefix",
+                fish_hex(&scheme.get_or_fallback("primary")),
+            ),
+            (
+                "fish_pager_color_progress",
+                fish_hex(&scheme.get_or_fallback("outline")),
+            ),
         ];
 
         let mut script = String::new();
@@ -95,7 +137,9 @@ impl ThemeModule for FishModule {
             .join("lmtt-colors.fish");
         if legacy.exists() {
             let _ = tokio::fs::remove_file(&legacy).await;
-            tracing::info!("[Fish] Removed legacy conf.d/lmtt-colors.fish (colors now universal variables)");
+            tracing::info!(
+                "[Fish] Removed legacy conf.d/lmtt-colors.fish (colors now universal variables)"
+            );
         }
 
         tracing::info!("[Fish] Updated colors via universal variables (live shells included)");

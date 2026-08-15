@@ -20,7 +20,7 @@ impl fmt::Display for ThemeMode {
 
 impl std::str::FromStr for ThemeMode {
     type Err = crate::Error;
-    
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "light" => Ok(ThemeMode::Light),
@@ -53,11 +53,11 @@ impl ColorScheme {
             colors: HashMap::new(),
         }
     }
-    
+
     pub fn get(&self, key: &str) -> Option<&String> {
         self.colors.get(key)
     }
-    
+
     pub fn set(&mut self, key: String, value: String) {
         self.colors.insert(key, value);
     }
@@ -72,7 +72,7 @@ impl ColorScheme {
             .map(|s| s.to_string())
             .unwrap_or_else(|| "#808080".to_string())
     }
-    
+
     /// Generate GTK CSS with @define-color declarations
     pub fn to_gtk_css(&self) -> String {
         let mut css = String::new();
@@ -105,12 +105,12 @@ impl ColorScheme {
 
         css
     }
-    
+
     /// Get primary color
     pub fn primary(&self) -> Option<&String> {
         self.get("primary")
     }
-    
+
     /// Get background color
     pub fn background(&self) -> Option<&String> {
         self.get("surface")

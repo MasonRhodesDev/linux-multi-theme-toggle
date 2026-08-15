@@ -1,5 +1,5 @@
-use std::path::Path;
 use crate::Result;
+use std::path::Path;
 
 /// Write a file atomically: write to a temp file in the same directory, then
 /// rename over the target. Readers (inotify watchers, `@import`ing apps,
@@ -17,7 +17,9 @@ pub async fn write_atomic(path: &Path, contents: impl AsRef<[u8]>) -> Result<()>
             if link_target.is_absolute() {
                 link_target
             } else {
-                path.parent().unwrap_or_else(|| Path::new(".")).join(link_target)
+                path.parent()
+                    .unwrap_or_else(|| Path::new("."))
+                    .join(link_target)
             }
         }
         Err(_) => path.to_path_buf(),
