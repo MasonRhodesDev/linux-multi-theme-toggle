@@ -7,6 +7,12 @@ crate::register_module!(SlintModule);
 /// Writes Material You tokens through lmtt-core. Always-on: no binary gate.
 pub struct SlintModule;
 
+impl Default for SlintModule {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SlintModule {
     pub fn new() -> Self {
         Self
