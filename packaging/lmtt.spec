@@ -51,6 +51,11 @@ replace-with = "vendored-sources"
 git = "https://github.com/MasonRhodesDev/appearance-profiles.git"
 rev = "75d831a"
 replace-with = "vendored-sources"
+
+[source."git+https://github.com/MasonRhodesDev/hypr-paths?rev=1f94b71311a989bff5f7ae9b0ef2afd23ee14b16"]
+git = "https://github.com/MasonRhodesDev/hypr-paths"
+rev = "1f94b71311a989bff5f7ae9b0ef2afd23ee14b16"
+replace-with = "vendored-sources"
 EOF
 
 %build

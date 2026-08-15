@@ -310,9 +310,8 @@ fn publish_tokens(root: &Path) -> Result<()> {
         return Ok(());
     }
     let destination = root.join("tokens.json");
-    std::fs::copy(&source, &destination).map_err(|error| {
-        anyhow::anyhow!("cannot publish tokens {}: {error}", source.display())
-    })?;
+    std::fs::copy(&source, &destination)
+        .map_err(|error| anyhow::anyhow!("cannot publish tokens {}: {error}", source.display()))?;
     Ok(())
 }
 
