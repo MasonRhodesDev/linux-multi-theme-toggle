@@ -57,7 +57,7 @@ async fn gsettings_set(key: &str, value: &str) -> Result<()> {
 /// Update `key = value` entries in one INI section, preserving every other
 /// line (user keys, comments, other sections). Creates the section if
 /// missing; appends missing keys at the end of the section.
-fn merge_ini(content: &str, section: &str, updates: &[(&str, String)]) -> String {
+pub(crate) fn merge_ini(content: &str, section: &str, updates: &[(&str, String)]) -> String {
     let header = format!("[{}]", section);
     let mut lines: Vec<String> = Vec::new();
     // Keys still to write, and keys already written (to collapse duplicates).
