@@ -309,9 +309,10 @@ fn publish_tokens(root: &Path) -> Result<()> {
     if !source.is_file() {
         return Ok(());
     }
-    let destination = root.join("tokens.json");
-    std::fs::copy(&source, &destination)
-        .map_err(|error| anyhow::anyhow!("cannot publish tokens {}: {error}", source.display()))?;
+    let scheme = lmtt_core::tokens::load_file(&source)?;
+    lmtt_core::tokens::write_published_at(&root.join("tokens.json"), &scheme).map_err(|error| {
+        anyhow::anyhow!("cannot publish tokens {}: {error}", source.display())
+    })?;
     Ok(())
 }
 
@@ -414,6 +415,11 @@ async fn cmd_switch(mode: Option<ThemeMode>, no_notify: bool) -> Result<()> {
     };
     let scheme = matugen::generate_colors(&config, mode, color_cache).await?;
     lmtt_core::tokens::write_current(&scheme)?;
+    if let Ok(user) = std::env::var("USER") {
+        if let Err(error) = lmtt_core::tokens::write_published(&user, &scheme) {
+            tracing::debug!("published tokens not written: {error}");
+        }
+    }
 
     // Write shared lmtt-colors.css BEFORE modules run.
     // GTK3 apps (Thunar) re-read gtk.css when gsettings changes, which

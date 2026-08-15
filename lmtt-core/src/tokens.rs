@@ -34,6 +34,34 @@ pub fn write_current(scheme: &ColorScheme) -> Result<PathBuf> {
     Ok(path)
 }
 
+/// Write published tokens beside the appearance-profiles snapshot.
+///
+/// If the existing file parses at `SCHEMA_VERSION`, it is rotated to
+/// `tokens.json.good` first. The parent directory must already exist.
+pub fn write_published(user: &str, scheme: &ColorScheme) -> Result<PathBuf> {
+    let path = published_tokens_path(user)?;
+    let Some(parent) = path.parent() else {
+        return Err(Error::Config("published tokens have no parent".into()));
+    };
+    if !parent.is_dir() {
+        return Err(Error::Config(format!(
+            "published profile dir missing: {}",
+            parent.display()
+        )));
+    }
+    write_published_at(&path, scheme)?;
+    Ok(path)
+}
+
+/// Atomic published-token write with last-known-good rotation.
+pub fn write_published_at(path: &Path, scheme: &ColorScheme) -> Result<()> {
+    if path.is_file() && load_file(path).is_ok() {
+        let good = path.with_file_name("tokens.json.good");
+        std::fs::rename(path, good)?;
+    }
+    write_scheme(path, scheme)
+}
+
 pub fn load_file(path: &Path) -> Result<ColorScheme> {
     let text = std::fs::read_to_string(path)?;
     let scheme: ColorScheme = serde_json::from_str(&text)?;
@@ -165,5 +193,50 @@ mod tests {
         let _ = std::fs::remove_file(&path);
         let err = err.unwrap_err().to_string();
         assert!(err.contains("unsupported tokens version 2"));
+    }
+
+    #[test]
+    fn write_published_rotates_valid_file_to_good() {
+        let dir = std::env::temp_dir().join(format!(
+            "lmtt-published-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("tokens.json");
+        let mut first = ColorScheme::new(ThemeMode::Dark);
+        first.colors.insert("primary".into(), "#111111".into());
+        write_published_at(&path, &first).unwrap();
+        let mut second = ColorScheme::new(ThemeMode::Light);
+        second.colors.insert("primary".into(), "#222222".into());
+        write_published_at(&path, &second).unwrap();
+        let good = load_file(&dir.join("tokens.json.good")).unwrap();
+        let current = load_file(&path).unwrap();
+        assert_eq!(good.mode, ThemeMode::Dark);
+        assert_eq!(current.mode, ThemeMode::Light);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn write_published_does_not_rotate_invalid_file() {
+        let dir = std::env::temp_dir().join(format!(
+            "lmtt-published-bad-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("tokens.json");
+        std::fs::write(&path, r#"{"version":2,"mode":"dark","colors":{}}"#).unwrap();
+        let scheme = ColorScheme::new(ThemeMode::Dark);
+        write_published_at(&path, &scheme).unwrap();
+        assert!(!dir.join("tokens.json.good").exists());
+        assert_eq!(load_file(&path).unwrap().version, SCHEMA_VERSION);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
