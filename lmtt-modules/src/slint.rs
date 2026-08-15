@@ -45,7 +45,7 @@ impl ThemeModule for SlintModule {
         let json = serde_json::to_string_pretty(scheme).map_err(|e| {
             lmtt_core::Error::Module(format!("Failed to serialize slint theme JSON: {e}"))
         })?;
-        tokio::fs::write(&path, json).await?;
+        lmtt_core::fsutil::write_atomic(&path, json).await?;
 
         tracing::info!("[slint] Updated tokens at {}", path.display());
         Ok(())

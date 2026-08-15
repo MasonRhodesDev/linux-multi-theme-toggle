@@ -42,8 +42,9 @@ Configuration lives in ~/.config/lmtt and is not part of this package.
 # never touches the network.
 cat >> .cargo/config.toml << 'EOF'
 
-[source."git+https://github.com/MasonRhodesDev/schema-tui.git"]
+[source."git+https://github.com/MasonRhodesDev/schema-tui.git?rev=90bf1526f31cf20852b9c02fb3d17c94746fc425"]
 git = "https://github.com/MasonRhodesDev/schema-tui.git"
+rev = "90bf1526f31cf20852b9c02fb3d17c94746fc425"
 replace-with = "vendored-sources"
 
 [source."git+https://github.com/MasonRhodesDev/appearance-profiles.git?rev=75d831a"]

@@ -288,7 +288,23 @@ fn publish_current(profile: &Profile) -> Result<()> {
         publish_rule(rule, &assets, &format!("output-{safe}"))?;
     }
     write_profile(&destination, &snapshot)?;
+    publish_tokens(root)?;
     println!("Published {}", destination.display());
+    Ok(())
+}
+
+fn publish_tokens(root: &Path) -> Result<()> {
+    let Some(config_dir) = dirs::config_dir() else {
+        return Ok(());
+    };
+    let source = config_dir.join("matugen").join("lmtt-slint.json");
+    if !source.is_file() {
+        return Ok(());
+    }
+    let destination = root.join("lmtt-slint.json");
+    std::fs::copy(&source, &destination).map_err(|error| {
+        anyhow::anyhow!("cannot publish tokens {}: {error}", source.display())
+    })?;
     Ok(())
 }
 

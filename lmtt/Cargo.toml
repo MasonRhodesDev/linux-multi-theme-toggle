@@ -15,7 +15,7 @@ lmtt-core = { path = "../lmtt-core" }
 lmtt-platforms = { path = "../lmtt-platforms" }
 lmtt-modules = { path = "../lmtt-modules" }
 lmtt-config-tui = { path = "../lmtt-config-tui" }
-schema-tui = { git = "https://github.com/MasonRhodesDev/schema-tui.git" }
+schema-tui = { git = "https://github.com/MasonRhodesDev/schema-tui.git", rev = "90bf1526f31cf20852b9c02fb3d17c94746fc425" }
 tokio = { workspace = true }
 async-trait = { workspace = true }
 clap = { workspace = true }
