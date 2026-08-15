@@ -31,6 +31,38 @@ pub fn hex_to_rgb(hex: &str) -> Result<(u8, u8, u8), String> {
     }
 }
 
+/// GNOME `org.gnome.desktop.interface accent-color` names. The portal exposes
+/// accent as `(ddd)`; the writable host key is this enum, not arbitrary RGB.
+const GNOME_ACCENTS: &[(&str, u8, u8, u8)] = &[
+    ("blue", 0x35, 0x84, 0xe4),
+    ("teal", 0x21, 0x90, 0xa4),
+    ("green", 0x3a, 0x94, 0x4a),
+    ("yellow", 0xc8, 0x88, 0x00),
+    ("orange", 0xed, 0x5b, 0x00),
+    ("red", 0xe6, 0x2d, 0x42),
+    ("pink", 0xd5, 0x61, 0x99),
+    ("purple", 0x91, 0x41, 0xac),
+    ("slate", 0x6f, 0x83, 0x96),
+];
+
+/// Nearest named GNOME accent for a hex color, if the hex is valid.
+pub fn nearest_gnome_accent(hex: &str) -> Option<&'static str> {
+    let (r, g, b) = hex_to_rgb(hex).ok()?;
+    let mut best = GNOME_ACCENTS[0];
+    let mut best_dist = u32::MAX;
+    for entry in GNOME_ACCENTS {
+        let dr = i32::from(r) - i32::from(entry.1);
+        let dg = i32::from(g) - i32::from(entry.2);
+        let db = i32::from(b) - i32::from(entry.3);
+        let dist = (dr * dr + dg * dg + db * db) as u32;
+        if dist < best_dist {
+            best_dist = dist;
+            best = *entry;
+        }
+    }
+    Some(best.0)
+}
+
 /// Parse matugen JSON output into color map
 /// Supports both formats:
 /// - v3 actual: { "colors": { "dark": { "primary": "#xxx", ... }, "light": { ... } } }
@@ -124,6 +156,13 @@ mod tests {
         let result = parse_matugen_colors("not json", "dark");
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Failed to parse"));
+    }
+
+    #[test]
+    fn nearest_accent_picks_green_for_material_primary() {
+        assert_eq!(nearest_gnome_accent("#3a944a"), Some("green"));
+        assert_eq!(nearest_gnome_accent("#e62d42"), Some("red"));
+        assert_eq!(nearest_gnome_accent("#3584e4"), Some("blue"));
     }
 
     #[test]

@@ -199,6 +199,16 @@ impl ThemeModule for GtkModule {
             }
         }
 
+        // Accent before color-scheme. The portal key is (ddd); the writable
+        // host setting is a named GNOME enum. Missing schema is optional.
+        if let Some(primary) = scheme.primary() {
+            if let Some(name) = lmtt_core::colors::nearest_gnome_accent(primary) {
+                if let Err(e) = gsettings_set("accent-color", name).await {
+                    tracing::info!("[GTK] accent-color skipped: {e}");
+                }
+            }
+        }
+
         // color-scheme MUST be last — this is the signal Electron apps use via
         // the portal's SettingChanged. Setting it after all other gsettings
         // changes prevents re-evaluation races.

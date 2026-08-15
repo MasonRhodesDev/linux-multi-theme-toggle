@@ -74,45 +74,31 @@ impl ThemeModule for XdgModule {
 
         // The GTK module (priority 10) sets gsettings before us. The portal
         // backend (xdg-desktop-portal-gtk) detects the gsettings change and
-        // emits SettingChanged from the real portal bus name. We do NOT need
-        // to emit a fake signal — apps only accept signals from the real
-        // portal sender.
+        // emits SettingChanged from the real portal bus name. We do NOT emit
+        // a fake signal — apps only accept signals from the real portal sender.
         //
-        // Poll for dconf → portal propagation instead of a fixed sleep: this
-        // runs in the sequential platform phase, so every 100ms saved here is
-        // felt on every switch. Verification is logging-only either way.
+        // Poll ReadOne for dconf → portal propagation. This runs in the
+        // sequential platform phase, so every 100ms saved is felt on switch.
+        let conn = match zbus::Connection::session().await {
+            Ok(conn) => conn,
+            Err(e) => {
+                tracing::warn!("[XDG] Session bus unavailable: {e}");
+                return Ok(());
+            }
+        };
+
         let deadline = tokio::time::Instant::now() + tokio::time::Duration::from_millis(1000);
         let mut confirmed = false;
         loop {
-            match tokio::process::Command::new("dbus-send")
-                .args([
-                    "--session",
-                    "--print-reply",
-                    "--dest=org.freedesktop.portal.Desktop",
-                    "/org/freedesktop/portal/desktop",
-                    "org.freedesktop.portal.Settings.ReadOne",
-                    "string:org.freedesktop.appearance",
-                    "string:color-scheme",
-                ])
-                .output()
-                .await
-            {
-                Ok(output) if output.status.success() => {
-                    let stdout = String::from_utf8_lossy(&output.stdout);
-                    if stdout.lines().any(|line| line.contains(&format!("uint32 {}", expected_value))) {
+            match portal_read_one(&conn, "color-scheme").await {
+                Ok(value) => {
+                    if portal_u32(value) == Some(expected_value) {
                         confirmed = true;
                         break;
                     }
                 }
-                Ok(output) => {
-                    tracing::warn!(
-                        "[XDG] Portal query failed: {}",
-                        String::from_utf8_lossy(&output.stderr).trim()
-                    );
-                    break;
-                }
                 Err(e) => {
-                    tracing::warn!("[XDG] Failed to query portal: {}", e);
+                    tracing::warn!("[XDG] Portal query failed: {e}");
                     break;
                 }
             }
@@ -123,9 +109,20 @@ impl ThemeModule for XdgModule {
         }
 
         if confirmed {
-            tracing::info!("[XDG] Portal reports correct value ({}), signal emitted by portal", expected_value);
+            tracing::info!(
+                "[XDG] Portal reports correct value ({}), signal emitted by portal",
+                expected_value
+            );
         } else {
-            tracing::warn!("[XDG] Portal did not confirm color-scheme {} — apps may not have received the signal", expected_value);
+            tracing::warn!(
+                "[XDG] Portal did not confirm color-scheme {} — apps may not have received the signal",
+                expected_value
+            );
+        }
+
+        match portal_read_one(&conn, "accent-color").await {
+            Ok(_) => tracing::debug!("[XDG] Portal exposes accent-color"),
+            Err(e) => tracing::debug!("[XDG] Portal has no accent-color: {e}"),
         }
 
         Ok(())
@@ -135,4 +132,25 @@ impl ThemeModule for XdgModule {
         // XDG doesn't need config file injection
         Ok(vec![])
     }
+}
+
+async fn portal_read_one(
+    conn: &zbus::Connection,
+    key: &str,
+) -> std::result::Result<zbus::zvariant::OwnedValue, String> {
+    let reply = conn
+        .call_method(
+            Some("org.freedesktop.portal.Desktop"),
+            "/org/freedesktop/portal/desktop",
+            Some("org.freedesktop.portal.Settings"),
+            "ReadOne",
+            &("org.freedesktop.appearance", key),
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    reply.body().deserialize().map_err(|e| e.to_string())
+}
+
+fn portal_u32(value: zbus::zvariant::OwnedValue) -> Option<u32> {
+    zbus::zvariant::Value::from(value).downcast().ok()
 }

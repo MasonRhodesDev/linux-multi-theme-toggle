@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::fallback::fallback_colors;
-use crate::types::{ColorScheme, ThemeMode};
+use crate::types::{ColorScheme, ThemeMode, SCHEMA_VERSION};
 use crate::{Error, Result};
 
 const TOKENS_FILE: &str = "tokens.json";
@@ -36,7 +36,14 @@ pub fn write_current(scheme: &ColorScheme) -> Result<PathBuf> {
 
 pub fn load_file(path: &Path) -> Result<ColorScheme> {
     let text = std::fs::read_to_string(path)?;
-    Ok(serde_json::from_str(&text)?)
+    let scheme: ColorScheme = serde_json::from_str(&text)?;
+    if scheme.version != SCHEMA_VERSION {
+        return Err(Error::Config(format!(
+            "unsupported tokens version {} (expected {SCHEMA_VERSION})",
+            scheme.version
+        )));
+    }
+    Ok(scheme)
 }
 
 /// User tokens, migrating a legacy matugen JSON once if needed.
@@ -67,10 +74,9 @@ pub fn load_system(mode: ThemeMode) -> ColorScheme {
             return scheme;
         }
     }
-    ColorScheme {
-        mode,
-        colors: fallback_colors(mode),
-    }
+    let mut scheme = ColorScheme::new(mode);
+    scheme.colors = fallback_colors(mode);
+    scheme
 }
 
 fn write_scheme(path: &Path, scheme: &ColorScheme) -> Result<()> {
@@ -121,5 +127,41 @@ mod tests {
     #[test]
     fn published_user_is_rejected_when_unsafe() {
         assert!(published_tokens_path("../root").is_err());
+    }
+
+    fn write_temp_tokens(name: &str, json: &str) -> PathBuf {
+        let path = std::env::temp_dir().join(format!(
+            "lmtt-tokens-{}-{}-{name}.json",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::write(&path, json).unwrap();
+        path
+    }
+
+    #[test]
+    fn load_file_defaults_missing_version_to_one() {
+        let path = write_temp_tokens(
+            "default",
+            r##"{"mode":"dark","colors":{"primary":"#123456"}}"##,
+        );
+        let scheme = load_file(&path);
+        let _ = std::fs::remove_file(&path);
+        let scheme = scheme.unwrap();
+        assert_eq!(scheme.version, SCHEMA_VERSION);
+        assert_eq!(scheme.mode, ThemeMode::Dark);
+        assert_eq!(scheme.colors.get("primary").unwrap(), "#123456");
+    }
+
+    #[test]
+    fn load_file_rejects_unsupported_version() {
+        let path = write_temp_tokens("unsupported", r#"{"version":2,"mode":"dark","colors":{}}"#);
+        let err = load_file(&path);
+        let _ = std::fs::remove_file(&path);
+        let err = err.unwrap_err().to_string();
+        assert!(err.contains("unsupported tokens version 2"));
     }
 }

@@ -30,9 +30,17 @@ impl std::str::FromStr for ThemeMode {
     }
 }
 
+pub const SCHEMA_VERSION: u32 = 1;
+
+fn default_token_version() -> u32 {
+    SCHEMA_VERSION
+}
+
 /// Material You color scheme
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColorScheme {
+    #[serde(default = "default_token_version")]
+    pub version: u32,
     pub mode: ThemeMode,
     pub colors: HashMap<String, String>,
 }
@@ -40,6 +48,7 @@ pub struct ColorScheme {
 impl ColorScheme {
     pub fn new(mode: ThemeMode) -> Self {
         Self {
+            version: SCHEMA_VERSION,
             mode,
             colors: HashMap::new(),
         }

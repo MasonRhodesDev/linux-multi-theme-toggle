@@ -17,6 +17,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 dirs = { workspace = true }
 tracing = { workspace = true }
+zbus = { workspace = true }
 inventory = { workspace = true }
 handlebars = { workspace = true }
 tempfile = { workspace = true }
