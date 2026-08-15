@@ -523,10 +523,9 @@ impl Config {
     
     /// Get config file path
     pub fn config_path() -> Result<PathBuf> {
-        let config_dir = dirs::config_dir()
-            .ok_or_else(|| Error::Config("No config directory found".to_string()))?;
-        
-        Ok(config_dir.join("lmtt").join("config.toml"))
+        let dirs = hypr_paths::ConfigDirs::from_env()
+            .map_err(|e| Error::Config(e.to_string()))?;
+        Ok(dirs.config_dir("lmtt").join("config.toml"))
     }
     
     /// Check if a module is enabled (enabled by default, returns true if not in config)

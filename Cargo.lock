@@ -709,6 +709,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "hypr-paths"
+version = "0.1.0"
+source = "git+https://github.com/MasonRhodesDev/hypr-paths?rev=535cec729936310b480c99203c05b5900d2a7e71#535cec729936310b480c99203c05b5900d2a7e71"
+
+[[package]]
 name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -855,6 +860,7 @@ dependencies = [
  "anyhow",
  "appearance-profiles",
  "dirs",
+ "hypr-paths",
  "palette",
  "serde",
  "serde_json",

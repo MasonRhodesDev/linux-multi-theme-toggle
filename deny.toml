@@ -44,4 +44,7 @@ unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 # schema-tui (the TUI framework behind lmtt-config) is consumed straight
 # from its git repo; it is our own code, pinned by Cargo.lock.
-allow-git = ["https://github.com/MasonRhodesDev/schema-tui"]
+allow-git = [
+    "https://github.com/MasonRhodesDev/schema-tui",
+    "https://github.com/MasonRhodesDev/hypr-paths",
+]
