@@ -7,7 +7,7 @@
 %bcond_without check
 
 Name:           lmtt
-Version:        0.2.1
+Version:        0.2.2
 Release:        1%{?dist}
 Summary:        Fast async theme switching for Hyprland/Wayland desktops
 License:        MIT
@@ -83,6 +83,11 @@ install -Dpm0755 examples/scripts/*.sh -t %{buildroot}%{_datadir}/lmtt/examples/
 %{_datadir}/lmtt/
 
 %changelog
+* Sat Aug 15 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.2-1
+- Publish tokens.json beside appearance-profiles on switch with last-known-good
+  rotation, take hypr-paths from crates.io, and retire the regreet and hyprlock
+  modules.
+
 * Fri Aug 14 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.1-1
 - Add the appearance-profiles registry, wallpaper set/resolve/publish CLI,
   and shared wallpaper resolution for palette generation.
