@@ -311,7 +311,7 @@ flowchart TD
     RES -->|"use_matugen: matugen from wallpaper (cached — skipped if wallpaper unchanged)"| SCHEME["ColorScheme"]
     RES -->|"else: custom colors-light.json / colors-dark.json"| SCHEME
     RES -->|"else: built-in Material You fallback palette"| SCHEME
-    SCHEME --> REG["ModuleRegistry — inventory-discovered ThemeModule impls (17 built-ins + handlebars-templated custom modules)"]
+    SCHEME --> REG["ModuleRegistry — inventory-discovered ThemeModule impls (16 built-ins + handlebars-templated custom modules)"]
 
     subgraph PAR ["apply() for every enabled module, in parallel on Tokio — whole switch ~100-200ms"]
         GTK["GTK: gsettings color-scheme + theme names"]
