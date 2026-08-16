@@ -19,7 +19,7 @@ depends=('gcc-libs')
 makedepends=('cargo' 'git')
 optdepends=('matugen: Material You color generation from wallpapers')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-sha256sums=('fd2440d2d1e00a1cddf04cba33eec4935817c447d405e6f944f0008963d61d2a')
+sha256sums=('72b54b3cf6a2c58921bf3b028ea7e53ae607fb6f68c314759bcb6d6b184ff9c7')
 
 prepare() {
   # GitHub archive tarballs extract to linux-multi-theme-toggle-$pkgver/,
