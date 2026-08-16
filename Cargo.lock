@@ -711,7 +711,8 @@ dependencies = [
 [[package]]
 name = "hypr-paths"
 version = "0.1.0"
-source = "git+https://github.com/MasonRhodesDev/hypr-paths?rev=1f94b71311a989bff5f7ae9b0ef2afd23ee14b16#1f94b71311a989bff5f7ae9b0ef2afd23ee14b16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2b57d35d5a9d1fe4892d499fca8fb64f331cf0a2618ca38b1fc32fdfef9f6ed"
 
 [[package]]
 name = "ident_case"

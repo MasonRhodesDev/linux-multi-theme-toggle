@@ -46,6 +46,5 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 # from its git repo; it is our own code, pinned by Cargo.lock.
 allow-git = [
     "https://github.com/MasonRhodesDev/schema-tui",
-    "https://github.com/MasonRhodesDev/hypr-paths",
     "https://github.com/MasonRhodesDev/appearance-profiles.git",
 ]
