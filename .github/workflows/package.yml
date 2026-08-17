@@ -11,9 +11,9 @@ concurrency:
 
 jobs:
   arch:
-    uses: MasonRhodesDev/packaging-workflows/.github/workflows/arch-package.yml@d43d3b4a06664363f1a3cd1ee7ee467b0b066ec6
+    uses: MasonRhodesDev/packaging-workflows/.github/workflows/arch-package.yml@v1
 
   rpm:
-    uses: MasonRhodesDev/packaging-workflows/.github/workflows/rpm-check.yml@d43d3b4a06664363f1a3cd1ee7ee467b0b066ec6
+    uses: MasonRhodesDev/packaging-workflows/.github/workflows/rpm-check.yml@v1
     with:
       spec-name: lmtt
