@@ -1,11 +1,32 @@
 mod matugen;
 
 use anyhow::Result;
-use appearance_profiles::{Background, Fit, OutputIdentity, Profile, Registry};
+use appearance_profiles::{
+    Background, Fit, OutputIdentity, PreparedBackground, PreparedBundle, Profile, Registry,
+};
 use clap::{Parser, Subcommand};
 use lmtt_core::{Config, ThemeMode};
 use lmtt_modules::{CleanupManager, ModuleRegistry, SetupManager};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct HyprMonitor {
+    name: String,
+    description: String,
+    width: u32,
+    height: u32,
+    transform: u8,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CacheMonitor {
+    name: String,
+    selectors: Vec<String>,
+    width: u32,
+    height: u32,
+}
 
 #[derive(Parser)]
 #[command(name = "lmtt")]
@@ -300,7 +321,164 @@ fn publish_current(profile: &Profile) -> Result<()> {
     }
     write_profile(&destination, &snapshot)?;
     publish_tokens(root)?;
+    publish_prepared_bundle(root, &user, &snapshot)?;
     println!("Published {}", destination.display());
+    Ok(())
+}
+
+fn publish_prepared_bundle(root: &Path, user: &str, snapshot: &Profile) -> Result<()> {
+    let mut monitors = active_monitors().unwrap_or_else(|error| {
+        tracing::debug!("live monitor discovery unavailable: {error}");
+        Vec::new()
+    });
+    monitors.extend(configured_monitors()?);
+    monitors
+        .sort_by(|a, b| (&a.selectors, a.width, a.height).cmp(&(&b.selectors, b.width, b.height)));
+    monitors
+        .dedup_by(|a, b| a.selectors == b.selectors && a.width == b.width && a.height == b.height);
+    let mut registry = Registry::load(None)?;
+    registry.user = Some(snapshot.clone());
+    let generation_name = format!(
+        "{}-{}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_secs(),
+        std::process::id()
+    );
+    let generation = root.join("cache").join(&generation_name);
+    std::fs::create_dir_all(&generation)?;
+
+    let mut requests: HashMap<(PathBuf, Fit, u32, u32), Vec<String>> = HashMap::new();
+    for monitor in monitors {
+        let identity = OutputIdentity::new(
+            monitor.name,
+            monitor
+                .selectors
+                .iter()
+                .find_map(|selector| selector.strip_prefix("desc:").map(str::to_owned)),
+        );
+        let resolved = registry.resolve(&identity, None);
+        if let Some(path) = resolved.path {
+            requests
+                .entry((path, resolved.fit, monitor.width, monitor.height))
+                .or_default()
+                .extend(monitor.selectors);
+        }
+    }
+    let prepared = std::thread::scope(|scope| {
+        requests
+            .into_iter()
+            .enumerate()
+            .map(|(index, ((path, fit, width, height), mut selectors))| {
+                let generation = &generation;
+                scope.spawn(move || -> Result<PreparedBackground> {
+                    selectors.sort();
+                    selectors.dedup();
+                    let rgba = appearance_profiles::prepare_background(&path, fit, width, height)?;
+                    let asset =
+                        generation.join(format!("background-{index}-{width}x{height}.rgba"));
+                    appearance_profiles::write_prepared_pixels(&asset, &rgba, width, height)?;
+                    let relative = asset.strip_prefix(root).expect("generation is under root");
+                    Ok(PreparedBackground {
+                        selectors,
+                        width,
+                        height,
+                        fit,
+                        asset: relative.into(),
+                    })
+                })
+            })
+            .collect::<Vec<_>>()
+            .into_iter()
+            .map(|thread| thread.join().expect("appearance cache builder panicked"))
+            .collect::<Result<Vec<_>>>()
+    })?;
+
+    let bundle = PreparedBundle {
+        tokens: root
+            .join("tokens.json")
+            .is_file()
+            .then(|| "tokens.json".into()),
+        backgrounds: prepared,
+        ..PreparedBundle::default()
+    };
+    let destination = appearance_profiles::published_bundle_path(user)?;
+    let temporary = destination.with_extension("toml.tmp");
+    std::fs::write(&temporary, toml::to_string_pretty(&bundle)?)?;
+    std::fs::rename(temporary, &destination)?;
+    prune_cache_generations(&root.join("cache"), &generation_name)?;
+    println!(
+        "Prepared {} monitor asset(s) in {}",
+        bundle.backgrounds.len(),
+        destination.display()
+    );
+    Ok(())
+}
+
+fn active_monitors() -> Result<Vec<CacheMonitor>> {
+    let output = std::process::Command::new("hyprctl")
+        .args(["-j", "monitors", "all"])
+        .output()?;
+    if !output.status.success() {
+        anyhow::bail!("hyprctl monitors failed with {}", output.status);
+    }
+    let monitors: Vec<HyprMonitor> = serde_json::from_slice(&output.stdout)?;
+    Ok(monitors
+        .into_iter()
+        .map(|monitor| {
+            let (width, height) = if monitor.transform % 2 == 1 {
+                (monitor.height, monitor.width)
+            } else {
+                (monitor.width, monitor.height)
+            };
+            let mut selectors = vec![monitor.name.clone()];
+            if !monitor.description.is_empty() {
+                selectors.push(format!("desc:{}", monitor.description));
+            }
+            CacheMonitor {
+                name: monitor.name,
+                selectors,
+                width,
+                height,
+            }
+        })
+        .collect())
+}
+
+fn configured_monitors() -> Result<Vec<CacheMonitor>> {
+    let profiles_dir = hypr_paths::ConfigDirs::from_env()?.config_dir("hypr/profiles");
+    let (profiles, diagnostics) = monitor_profiles::load_dir(&profiles_dir);
+    for diagnostic in diagnostics {
+        tracing::warn!("monitor profile: {diagnostic:?}");
+    }
+    Ok(profiles
+        .into_iter()
+        .flat_map(|profile| profile.monitors)
+        .filter(|monitor| monitor.enabled)
+        .filter_map(|monitor| {
+            let mode = monitor.mode?;
+            let (width, height) = if monitor.transform % 2 == 1 {
+                (mode.height, mode.width)
+            } else {
+                (mode.width, mode.height)
+            };
+            Some(CacheMonitor {
+                name: monitor.output.clone(),
+                selectors: vec![monitor.output],
+                width,
+                height,
+            })
+        })
+        .collect())
+}
+
+fn prune_cache_generations(cache: &Path, keep: &str) -> Result<()> {
+    for entry in std::fs::read_dir(cache)? {
+        let entry = entry?;
+        if entry.file_type()?.is_dir() && entry.file_name() != keep {
+            std::fs::remove_dir_all(entry.path())?;
+        }
+    }
     Ok(())
 }
 
@@ -310,9 +488,8 @@ fn publish_tokens(root: &Path) -> Result<()> {
         return Ok(());
     }
     let scheme = lmtt_core::tokens::load_file(&source)?;
-    lmtt_core::tokens::write_published_at(&root.join("tokens.json"), &scheme).map_err(|error| {
-        anyhow::anyhow!("cannot publish tokens {}: {error}", source.display())
-    })?;
+    lmtt_core::tokens::write_published_at(&root.join("tokens.json"), &scheme)
+        .map_err(|error| anyhow::anyhow!("cannot publish tokens {}: {error}", source.display()))?;
     Ok(())
 }
 
