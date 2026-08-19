@@ -2,7 +2,8 @@ mod matugen;
 
 use anyhow::Result;
 use appearance_profiles::{
-    Background, Fit, OutputIdentity, PreparedBackground, PreparedBundle, Profile, Registry,
+    Background, Fit, OutputIdentity, PixelFormat, PreparedBackground, PreparedBundle, Profile,
+    Registry,
 };
 use clap::{Parser, Subcommand};
 use lmtt_core::{Config, ThemeMode};
@@ -375,15 +376,17 @@ fn publish_prepared_bundle(root: &Path, user: &str, snapshot: &Profile) -> Resul
                     selectors.sort();
                     selectors.dedup();
                     let rgba = appearance_profiles::prepare_background(&path, fit, width, height)?;
+                    let xrgb = appearance_profiles::rgba_to_xrgb8888_le(&rgba);
                     let asset =
-                        generation.join(format!("background-{index}-{width}x{height}.rgba"));
-                    appearance_profiles::write_prepared_pixels(&asset, &rgba, width, height)?;
+                        generation.join(format!("background-{index}-{width}x{height}.xrgb"));
+                    appearance_profiles::write_prepared_xrgb(&asset, &xrgb, width, height)?;
                     let relative = asset.strip_prefix(root).expect("generation is under root");
                     Ok(PreparedBackground {
                         selectors,
                         width,
                         height,
                         fit,
+                        format: PixelFormat::Xrgb8888Le,
                         asset: relative.into(),
                     })
                 })

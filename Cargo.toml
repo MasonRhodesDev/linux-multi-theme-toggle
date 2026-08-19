@@ -51,7 +51,7 @@ inventory = "0.3"
 # Template engine for custom modules
 handlebars = "5.1"
 tempfile = "3.10"
-appearance-profiles = { git = "https://github.com/MasonRhodesDev/appearance-profiles.git", rev = "54741430fe095dc6a8c78a4b1d7d0170cba3f0b9", features = ["builder"] }
+appearance-profiles = { git = "https://github.com/MasonRhodesDev/appearance-profiles.git", rev = "780296ec160b18411c65982d323562e5617d6465", features = ["builder"] }
 hypr-paths = "0.1.0"
 monitor-profiles = { git = "https://github.com/MasonRhodesDev/monitor-profiles", rev = "aef5f0e" }
 
