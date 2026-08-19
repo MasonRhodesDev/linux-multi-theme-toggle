@@ -7,7 +7,7 @@
 %bcond_without check
 
 Name:           lmtt
-Version:        0.2.3
+Version:        0.2.4
 Release:        1%{?dist}
 Summary:        Fast async theme switching for Hyprland/Wayland desktops
 License:        MIT
@@ -88,6 +88,9 @@ install -Dpm0755 examples/scripts/*.sh -t %{buildroot}%{_datadir}/lmtt/examples/
 %{_datadir}/lmtt/
 
 %changelog
+* Wed Aug 19 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.4-1
+- Allow the pinned shared monitor-profiles source in the release security policy.
+
 * Wed Aug 19 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.3-1
 - Delegate atomic prepared appearance publication to appearance-profiles.
 - Use the shared canonical monitor identity implementation.

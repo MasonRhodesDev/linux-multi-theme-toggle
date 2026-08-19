@@ -47,4 +47,5 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 allow-git = [
     "https://github.com/MasonRhodesDev/schema-tui",
     "https://github.com/MasonRhodesDev/appearance-profiles.git",
+    "https://github.com/MasonRhodesDev/monitor-profiles",
 ]
