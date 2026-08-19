@@ -7,7 +7,7 @@
 %bcond_without check
 
 Name:           lmtt
-Version:        0.2.2
+Version:        0.2.3
 Release:        1%{?dist}
 Summary:        Fast async theme switching for Hyprland/Wayland desktops
 License:        MIT
@@ -47,9 +47,14 @@ git = "https://github.com/MasonRhodesDev/schema-tui.git"
 rev = "90bf1526f31cf20852b9c02fb3d17c94746fc425"
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/MasonRhodesDev/appearance-profiles.git?rev=75d831a"]
+[source."git+https://github.com/MasonRhodesDev/appearance-profiles.git?rev=bfd6f0d66dac7a31c4f2be042466f9222a3cb165#bfd6f0d66dac7a31c4f2be042466f9222a3cb165"]
 git = "https://github.com/MasonRhodesDev/appearance-profiles.git"
-rev = "75d831a"
+rev = "bfd6f0d66dac7a31c4f2be042466f9222a3cb165"
+replace-with = "vendored-sources"
+
+[source."git+https://github.com/MasonRhodesDev/monitor-profiles?rev=64d5d1ed079582a2014ebf23c403a3ca03ee9c64#64d5d1ed079582a2014ebf23c403a3ca03ee9c64"]
+git = "https://github.com/MasonRhodesDev/monitor-profiles"
+rev = "64d5d1ed079582a2014ebf23c403a3ca03ee9c64"
 replace-with = "vendored-sources"
 EOF
 
@@ -83,6 +88,10 @@ install -Dpm0755 examples/scripts/*.sh -t %{buildroot}%{_datadir}/lmtt/examples/
 %{_datadir}/lmtt/
 
 %changelog
+* Wed Aug 19 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.3-1
+- Delegate atomic prepared appearance publication to appearance-profiles.
+- Use the shared canonical monitor identity implementation.
+
 * Sat Aug 15 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.2-1
 - Publish tokens.json beside appearance-profiles on switch with last-known-good
   rotation, take hypr-paths from crates.io, and retire the regreet and hyprlock
