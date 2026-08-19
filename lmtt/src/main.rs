@@ -405,10 +405,7 @@ fn publish_prepared_bundle(root: &Path, user: &str, snapshot: &Profile) -> Resul
         backgrounds: prepared,
         ..PreparedBundle::default()
     };
-    let destination = appearance_profiles::published_bundle_path(user)?;
-    let temporary = destination.with_extension("toml.tmp");
-    std::fs::write(&temporary, toml::to_string_pretty(&bundle)?)?;
-    std::fs::rename(temporary, &destination)?;
+    let destination = bundle.publish(user)?;
     prune_cache_generations(&root.join("cache"), &generation_name)?;
     println!(
         "Prepared {} monitor asset(s) in {}",

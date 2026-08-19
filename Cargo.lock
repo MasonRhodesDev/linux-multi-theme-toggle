@@ -82,7 +82,7 @@ checksum = "2a4385e2e34eb35d6b3efe798b9eb88096925d87726c0798709bf56d9ed84af3"
 [[package]]
 name = "appearance-profiles"
 version = "0.2.0"
-source = "git+https://github.com/MasonRhodesDev/appearance-profiles.git?rev=780296ec160b18411c65982d323562e5617d6465#780296ec160b18411c65982d323562e5617d6465"
+source = "git+https://github.com/MasonRhodesDev/appearance-profiles.git?rev=bfd6f0d66dac7a31c4f2be042466f9222a3cb165#bfd6f0d66dac7a31c4f2be042466f9222a3cb165"
 dependencies = [
  "image",
  "serde",
@@ -1043,7 +1043,7 @@ dependencies = [
 [[package]]
 name = "monitor-profiles"
 version = "0.1.0"
-source = "git+https://github.com/MasonRhodesDev/monitor-profiles?rev=aef5f0e#aef5f0e76afa78171a01c65ebc88d2dd7626d80d"
+source = "git+https://github.com/MasonRhodesDev/monitor-profiles?rev=64d5d1ed079582a2014ebf23c403a3ca03ee9c64#64d5d1ed079582a2014ebf23c403a3ca03ee9c64"
 dependencies = [
  "serde",
  "toml 0.9.11+spec-1.1.0",
