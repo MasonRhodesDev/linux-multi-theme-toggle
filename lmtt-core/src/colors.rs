@@ -95,11 +95,16 @@ pub fn parse_matugen_colors(json: &str, mode: &str) -> Result<HashMap<String, St
         }
     }
 
-    // Fall back to legacy format: colors[color_name][mode]
+    // Per-color formats: colors[color_name][mode] is either a bare hex
+    // string (legacy) or, since matugen 4.x, an object { "color": "#hex" }.
     if map.is_empty() {
         if let Some(obj) = colors.as_object() {
             for (color_name, color_value) in obj {
-                if let Some(hex) = color_value.get(mode).and_then(|v| v.as_str()) {
+                let per_mode = color_value.get(mode);
+                let hex = per_mode
+                    .and_then(|v| v.as_str())
+                    .or_else(|| per_mode.and_then(|v| v.get("color")).and_then(|v| v.as_str()));
+                if let Some(hex) = hex {
                     map.insert(color_name.clone(), hex.to_string());
                 }
             }
@@ -116,6 +121,17 @@ pub fn parse_matugen_colors(json: &str, mode: &str) -> Result<HashMap<String, St
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parses_matugen_4_per_color_mode_objects() {
+        let json = r##"{"colors":{"primary":{"dark":{"color":"#a2c9fe"},"light":{"color":"#38608f"}},
+            "tertiary":{"dark":{"color":"#bbc3fa"},"light":{"color":"#1e2a5a"}}}}"##;
+        let dark = parse_matugen_colors(json, "dark").unwrap();
+        assert_eq!(dark["primary"], "#a2c9fe");
+        assert_eq!(dark["tertiary"], "#bbc3fa");
+        let light = parse_matugen_colors(json, "light").unwrap();
+        assert_eq!(light["primary"], "#38608f");
+    }
 
     #[test]
     fn test_hex_to_rgb_forms() {
