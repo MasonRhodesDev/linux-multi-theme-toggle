@@ -7,7 +7,7 @@
 %bcond_without check
 
 Name:           lmtt
-Version:        0.2.4
+Version:        0.2.5
 Release:        1%{?dist}
 Summary:        Fast async theme switching for Hyprland/Wayland desktops
 License:        MIT
@@ -21,6 +21,7 @@ Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 Source1:        %{name}-%{version}-vendor.tar.xz
 
 BuildRequires:  cargo-rpm-macros >= 24
+BuildRequires:  systemd-rpm-macros
 # matugen (wallpaper-based Material You palettes) is optional at runtime and
 # not packaged in Fedora/COPR default repos; lmtt falls back to built-in
 # themes or custom JSON colors without it.
@@ -74,11 +75,15 @@ install -Dpm0644 examples/README-modules.md examples/colors-dark.json \
     examples/colors-light.json -t %{buildroot}%{_datadir}/lmtt/examples
 install -Dpm0644 examples/modules/*.toml -t %{buildroot}%{_datadir}/lmtt/examples/modules
 install -Dpm0755 examples/scripts/*.sh -t %{buildroot}%{_datadir}/lmtt/examples/scripts
+install -Dpm0644 dist/tmpfiles.d/lmtt.conf %{buildroot}%{_tmpfilesdir}/lmtt.conf
 
 %if %{with check}
 %check
 %cargo_test
 %endif
+
+%post
+%tmpfiles_create %{_tmpfilesdir}/lmtt.conf
 
 %files
 %license LICENSE LICENSE.dependencies
@@ -86,8 +91,14 @@ install -Dpm0755 examples/scripts/*.sh -t %{buildroot}%{_datadir}/lmtt/examples/
 %{_bindir}/lmtt
 %{_bindir}/lmtt-config
 %{_datadir}/lmtt/
+%{_tmpfilesdir}/lmtt.conf
 
 %changelog
+* Fri Aug 22 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.5-1
+- Ship a tmpfiles.d entry creating /var/lib/appearance-profiles/users:
+  without it, prepared-bundle publication failed silently on every
+  switch and lock screens fell back to seconds-long wallpaper decodes.
+
 * Wed Aug 19 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.4-1
 - Allow the pinned shared monitor-profiles source in the release security policy.
 
