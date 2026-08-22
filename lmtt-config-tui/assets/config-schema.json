@@ -68,6 +68,26 @@
           "subsection": "Matugen"
         },
         {
+          "id": "source_color_preference",
+          "label": "Seed Color Preference",
+          "description": "When the wallpaper yields several candidate seed colors, which one matugen picks (--prefer)",
+          "type": "enum",
+          "options_source": {
+            "type": "static",
+            "values": [
+              "saturation",
+              "less-saturation",
+              "darkness",
+              "lightness",
+              "value",
+              "closest-to-fallback"
+            ]
+          },
+          "default": "saturation",
+          "ui_widget": "dropdown",
+          "subsection": "Matugen"
+        },
+        {
           "id": "default_light_colors",
           "label": "Default Light Colors",
           "description": "Path to fallback color JSON for light mode when matugen disabled (supports ~ and $VAR)",

@@ -66,9 +66,10 @@ impl Cache {
         wallpaper_path: &Path,
         mode: &str,
         scheme_type: &str,
+        preference: &str,
     ) -> Result<Option<HashMap<String, String>>> {
         let cache_file = self
-            .colors_cache_file(wallpaper_path, mode, scheme_type)
+            .colors_cache_file(wallpaper_path, mode, scheme_type, preference)
             .await?;
 
         let content = match tokio::fs::read_to_string(&cache_file).await {
@@ -95,10 +96,11 @@ impl Cache {
         wallpaper_path: &Path,
         mode: &str,
         scheme_type: &str,
+        preference: &str,
         colors: &HashMap<String, String>,
     ) -> Result<()> {
         let cache_file = self
-            .colors_cache_file(wallpaper_path, mode, scheme_type)
+            .colors_cache_file(wallpaper_path, mode, scheme_type, preference)
             .await?;
         let json = serde_json::to_string(colors)
             .map_err(|e| crate::Error::Config(format!("Failed to serialize colors: {}", e)))?;
@@ -110,12 +112,16 @@ impl Cache {
         wallpaper_path: &Path,
         mode: &str,
         scheme_type: &str,
+        preference: &str,
     ) -> Result<PathBuf> {
         let hash = self.wallpaper_hash(wallpaper_path).await?;
         let hash_prefix = &hash[..16];
+        // The seed preference changes the palette, so it is part of the key;
+        // otherwise changing it would be silently ignored while a cache hit
+        // exists.
         Ok(self.cache_dir.join(format!(
-            "colors_{}_{}_{}.json",
-            hash_prefix, mode, scheme_type
+            "colors_{}_{}_{}_{}.json",
+            hash_prefix, mode, scheme_type, preference
         )))
     }
 }

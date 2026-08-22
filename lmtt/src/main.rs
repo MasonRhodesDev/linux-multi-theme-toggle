@@ -298,17 +298,41 @@ fn write_profile(path: &Path, profile: &Profile) -> Result<()> {
 }
 
 fn publish_current(profile: &Profile) -> Result<()> {
+    use std::os::unix::fs::DirBuilderExt;
     let user = std::env::var("USER").map_err(|_| anyhow::anyhow!("USER is not set"))?;
     let destination = appearance_profiles::published_profile_path(&user)?;
     let root = destination
         .parent()
         .expect("published profile has a parent");
-    std::fs::create_dir_all(root).map_err(|error| {
-        anyhow::anyhow!(
-            "cannot create {}: {error}; provision it for this user first",
-            root.display()
-        )
-    })?;
+    // The users/ parent is sticky world-writable so every user can create
+    // their own dir, which also lets another local user pre-create or
+    // symlink ours. Refuse to publish into anything we do not own outright.
+    match std::fs::symlink_metadata(root) {
+        Ok(meta) => {
+            use std::os::unix::fs::{MetadataExt, PermissionsExt};
+            if meta.file_type().is_symlink() || !meta.is_dir() {
+                anyhow::bail!("{} is not a plain directory; refusing to publish", root.display());
+            }
+            if meta.uid() != nix::unistd::geteuid().as_raw() {
+                anyhow::bail!("{} is owned by uid {}, not us; refusing to publish", root.display(), meta.uid());
+            }
+            if meta.permissions().mode() & 0o022 != 0 {
+                anyhow::bail!("{} is group/world writable; refusing to publish", root.display());
+            }
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            std::fs::DirBuilder::new()
+                .mode(0o755)
+                .create(root)
+                .map_err(|error| {
+                    anyhow::anyhow!(
+                        "cannot create {}: {error}; provision it for this user first",
+                        root.display()
+                    )
+                })?;
+        }
+        Err(error) => return Err(error.into()),
+    }
     let assets = root.join("assets");
     std::fs::create_dir_all(&assets)?;
     let mut snapshot = profile.clone();

@@ -235,6 +235,15 @@ fn default_scheme_type() -> String {
     "scheme-tonal-spot".to_string()
 }
 
+pub const SOURCE_COLOR_PREFERENCES: [&str; 6] = [
+    "saturation",
+    "less-saturation",
+    "darkness",
+    "lightness",
+    "value",
+    "closest-to-fallback",
+];
+
 fn default_source_color_preference() -> String {
     // The most saturated candidate reads as the image's accent — the
     // Material You seed a wallpaper is chosen for.
@@ -344,7 +353,18 @@ impl Config {
         // shouldn't create files).
         let mut config = if config_path.exists() {
             let contents = std::fs::read_to_string(&config_path)?;
-            toml::from_str::<Config>(&contents)?
+            {
+                let mut config = toml::from_str::<Config>(&contents)?;
+                if !SOURCE_COLOR_PREFERENCES.contains(&config.general.source_color_preference.as_str()) {
+                    tracing::warn!(
+                        "general.source_color_preference {:?} is not one of {:?}; using default",
+                        config.general.source_color_preference,
+                        SOURCE_COLOR_PREFERENCES
+                    );
+                    config.general.source_color_preference = default_source_color_preference();
+                }
+                config
+            }
         } else {
             Config::default()
         };

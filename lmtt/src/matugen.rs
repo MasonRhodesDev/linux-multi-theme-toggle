@@ -142,7 +142,7 @@ async fn generate_with_matugen(
     // Check color cache
     if let Some(cache) = cache {
         match cache
-            .get_cached_colors(wallpaper_path, &mode_str, scheme_type)
+            .get_cached_colors(wallpaper_path, &mode_str, scheme_type, &config.general.source_color_preference)
             .await
         {
             Ok(Some(colors)) => {
@@ -156,24 +156,36 @@ async fn generate_with_matugen(
         }
     }
 
-    // Run matugen to generate colors
-    let output = tokio::process::Command::new("matugen")
-        .args([
-            "--json",
-            "hex",
-            "--dry-run",
-            "image",
-            wallpaper,
-            "--mode",
-            &mode_str,
-            "--type",
-            scheme_type,
-            "--prefer",
-            &config.general.source_color_preference,
-        ])
+    // Run matugen to generate colors. `--prefer` exists since matugen 4.1;
+    // on an older matugen the flag is a clap error, so retry without it
+    // rather than fail every switch on hosts that have not caught up.
+    let base_args = [
+        "--json",
+        "hex",
+        "--dry-run",
+        "image",
+        wallpaper,
+        "--mode",
+        &mode_str,
+        "--type",
+        scheme_type,
+    ];
+    let mut output = tokio::process::Command::new("matugen")
+        .args(base_args)
+        .args(["--prefer", &config.general.source_color_preference])
         .output()
         .await
         .map_err(|e| Error::Matugen(format!("Failed to run matugen: {}", e)))?;
+    if !output.status.success()
+        && String::from_utf8_lossy(&output.stderr).contains("--prefer")
+    {
+        tracing::warn!("matugen does not support --prefer (needs 4.1+); retrying without it");
+        output = tokio::process::Command::new("matugen")
+            .args(base_args)
+            .output()
+            .await
+            .map_err(|e| Error::Matugen(format!("Failed to run matugen: {}", e)))?;
+    }
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -188,7 +200,7 @@ async fn generate_with_matugen(
     // Write to cache on success
     if let Some(cache) = cache {
         if let Err(e) = cache
-            .set_cached_colors(wallpaper_path, &mode_str, scheme_type, &colors)
+            .set_cached_colors(wallpaper_path, &mode_str, scheme_type, &config.general.source_color_preference, &colors)
             .await
         {
             tracing::debug!("Failed to cache colors: {}", e);

@@ -7,7 +7,7 @@
 %bcond_without check
 
 Name:           lmtt
-Version:        0.2.8
+Version:        0.2.9
 Release:        1%{?dist}
 Summary:        Fast async theme switching for Hyprland/Wayland desktops
 License:        MIT
@@ -94,6 +94,13 @@ install -Dpm0644 dist/tmpfiles.d/lmtt.conf %{buildroot}%{_tmpfilesdir}/lmtt.conf
 %{_tmpfilesdir}/lmtt.conf
 
 %changelog
+* Fri Aug 22 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.9-1
+- Review fixes: refuse to publish into a users/<name> dir we do not own
+  outright (sticky world-writable parent lets another user pre-create or
+  symlink it); retry matugen without --prefer on pre-4.1 matugen; seed
+  preference is part of the color cache key; source_color_preference is in
+  the lmtt-config schema and validated on load.
+
 * Fri Aug 22 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.8-1
 - Parse matugen 4.x JSON (colors[name][mode] is now { color = "#hex" }).
   Together with 0.2.7's --prefer this restores wallpaper-derived palettes;
