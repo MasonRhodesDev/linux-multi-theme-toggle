@@ -7,7 +7,7 @@
 %bcond_without check
 
 Name:           lmtt
-Version:        0.2.5
+Version:        0.2.6
 Release:        1%{?dist}
 Summary:        Fast async theme switching for Hyprland/Wayland desktops
 License:        MIT
@@ -94,6 +94,12 @@ install -Dpm0644 dist/tmpfiles.d/lmtt.conf %{buildroot}%{_tmpfilesdir}/lmtt.conf
 %{_tmpfilesdir}/lmtt.conf
 
 %changelog
+* Fri Aug 22 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.6-1
+- xdg module: start the portal with --no-block and skip confirmation when
+  it is not up. At login (hypr-DE renders styles before the daemons) the
+  blocking start sat on the session critical path for the full 10s
+  module timeout.
+
 * Fri Aug 22 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.5-1
 - Ship a tmpfiles.d entry creating /var/lib/appearance-profiles/users:
   without it, prepared-bundle publication failed silently on every

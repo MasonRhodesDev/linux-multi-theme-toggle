@@ -47,14 +47,24 @@ impl ThemeModule for XdgModule {
                 .unwrap_or(false);
 
             if !active {
-                tracing::info!("[XDG] Starting xdg-desktop-portal service");
+                // --no-block: at login this module runs before the portal's
+                // own dependencies are up (hypr-DE renders styles
+                // Before=waybar/swaync), and a blocking start sat on the
+                // session's critical path until the module timeout. The
+                // portal reads the gsettings value when it comes up, so
+                // there is nothing to wait for here.
+                tracing::info!("[XDG] Starting xdg-desktop-portal service (no-block)");
                 if let Err(e) = tokio::process::Command::new("systemctl")
-                    .args(["--user", "start", "xdg-desktop-portal"])
+                    .args(["--user", "start", "--no-block", "xdg-desktop-portal"])
                     .output()
                     .await
                 {
                     tracing::warn!("[XDG] Could not start portal service: {}", e);
                 }
+                // No portal to confirm against yet; querying it now would
+                // D-Bus-activate and block the same way.
+                tracing::info!("[XDG] Portal not up; skipping color-scheme confirmation");
+                return Ok(());
             } else {
                 tracing::debug!("[XDG] Portal service already running");
             }
