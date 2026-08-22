@@ -12,6 +12,9 @@ default_mode = "dark"
 # it stays faithful to the wallpaper's seed color. scheme-expressive rotates
 # hues away from the seed and can produce clashing palettes.
 # Options: scheme-content, scheme-expressive, scheme-fidelity, scheme-fruit-salad, scheme-monochrome, scheme-neutral, scheme-rainbow, scheme-tonal-spot, scheme-vibrant
+# When the wallpaper yields several seed colors, which one matugen picks
+# (darkness, lightness, saturation, less-saturation, value, closest-to-fallback)
+# source_color_preference = "saturation"
 scheme_type = "scheme-tonal-spot"
 
 # Use matugen (wallpaper-based color generation). When false, or when matugen

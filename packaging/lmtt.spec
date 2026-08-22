@@ -7,7 +7,7 @@
 %bcond_without check
 
 Name:           lmtt
-Version:        0.2.6
+Version:        0.2.7
 Release:        1%{?dist}
 Summary:        Fast async theme switching for Hyprland/Wayland desktops
 License:        MIT
@@ -94,6 +94,12 @@ install -Dpm0644 dist/tmpfiles.d/lmtt.conf %{buildroot}%{_tmpfilesdir}/lmtt.conf
 %{_tmpfilesdir}/lmtt.conf
 
 %changelog
+* Fri Aug 22 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.7-1
+- Pass --prefer to matugen (config: general.source_color_preference,
+  default "saturation"). matugen 4.x refuses non-interactively when an
+  image has several seed colors, so every switch had been falling back
+  to the built-in palette instead of the wallpaper-derived one.
+
 * Fri Aug 22 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.6-1
 - xdg module: start the portal with --no-block and skip confirmation when
   it is not up. At login (hypr-DE renders styles before the daemons) the

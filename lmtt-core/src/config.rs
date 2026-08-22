@@ -41,6 +41,13 @@ pub struct GeneralConfig {
     #[serde(default = "default_scheme_type")]
     pub scheme_type: String,
 
+    /// matugen `--prefer`: which seed to pick when an image yields several
+    /// candidate source colors. Without it matugen 4.x wants an interactive
+    /// choice and fails outright from a service, silently dropping every
+    /// switch to the built-in fallback palette.
+    #[serde(default = "default_source_color_preference")]
+    pub source_color_preference: String,
+
     #[serde(default = "default_true")]
     pub use_matugen: bool,
 
@@ -169,6 +176,7 @@ impl Default for GeneralConfig {
             wallpaper: default_wallpaper(),
             default_mode: default_mode(),
             scheme_type: default_scheme_type(),
+            source_color_preference: default_source_color_preference(),
             use_matugen: true,
             default_light_colors: default_light_colors(),
             default_dark_colors: default_dark_colors(),
@@ -225,6 +233,12 @@ fn default_mode() -> ThemeMode {
 
 fn default_scheme_type() -> String {
     "scheme-tonal-spot".to_string()
+}
+
+fn default_source_color_preference() -> String {
+    // The most saturated candidate reads as the image's accent — the
+    // Material You seed a wallpaper is chosen for.
+    "saturation".to_string()
 }
 
 fn default_true() -> bool {

@@ -168,6 +168,8 @@ async fn generate_with_matugen(
             &mode_str,
             "--type",
             scheme_type,
+            "--prefer",
+            &config.general.source_color_preference,
         ])
         .output()
         .await
