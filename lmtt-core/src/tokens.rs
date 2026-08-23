@@ -5,7 +5,6 @@ use crate::types::{ColorScheme, ThemeMode, SCHEMA_VERSION};
 use crate::{Error, Result};
 
 const TOKENS_FILE: &str = "tokens.json";
-const LEGACY_SLINT_JSON: &str = "matugen/lmtt-slint.json";
 
 pub fn user_tokens_path() -> Result<PathBuf> {
     Ok(crate::paths::user_data_dir()?.join(TOKENS_FILE))
@@ -74,13 +73,9 @@ pub fn load_file(path: &Path) -> Result<ColorScheme> {
     Ok(scheme)
 }
 
-/// User tokens, migrating a legacy matugen JSON once if needed.
+/// User tokens.
 pub fn load_current() -> Result<ColorScheme> {
-    let path = user_tokens_path()?;
-    if !path.exists() {
-        migrate_legacy_slint_json(&path)?;
-    }
-    load_file(&path)
+    load_file(&user_tokens_path()?)
 }
 
 pub fn load_published(user: &str) -> Result<ColorScheme> {
@@ -115,20 +110,6 @@ fn write_scheme(path: &Path, scheme: &ColorScheme) -> Result<()> {
     let tmp = path.with_extension("json.tmp");
     std::fs::write(&tmp, json)?;
     std::fs::rename(&tmp, path)?;
-    Ok(())
-}
-
-fn migrate_legacy_slint_json(dest: &Path) -> Result<()> {
-    let legacy = crate::paths::user_dirs()?
-        .config_home()
-        .join(LEGACY_SLINT_JSON);
-    if !legacy.is_file() {
-        return Ok(());
-    }
-    if let Some(parent) = dest.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    std::fs::copy(&legacy, dest)?;
     Ok(())
 }
 

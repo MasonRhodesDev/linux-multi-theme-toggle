@@ -355,7 +355,9 @@ impl Config {
             let contents = std::fs::read_to_string(&config_path)?;
             {
                 let mut config = toml::from_str::<Config>(&contents)?;
-                if !SOURCE_COLOR_PREFERENCES.contains(&config.general.source_color_preference.as_str()) {
+                if !SOURCE_COLOR_PREFERENCES
+                    .contains(&config.general.source_color_preference.as_str())
+                {
                     tracing::warn!(
                         "general.source_color_preference {:?} is not one of {:?}; using default",
                         config.general.source_color_preference,

@@ -7,7 +7,7 @@
 %bcond_without check
 
 Name:           lmtt
-Version:        0.2.9
+Version:        0.3.0
 Release:        1%{?dist}
 Summary:        Fast async theme switching for Hyprland/Wayland desktops
 License:        MIT
@@ -24,7 +24,9 @@ BuildRequires:  cargo-rpm-macros >= 24
 BuildRequires:  systemd-rpm-macros
 # matugen (wallpaper-based Material You palettes) is optional at runtime and
 # not packaged in Fedora/COPR default repos; lmtt falls back to built-in
-# themes or custom JSON colors without it.
+# themes or custom JSON colors without it. When present it must be 4.1+
+# (--prefer and the 4.x JSON shape are the only ones supported).
+Recommends:     matugen >= 4.1
 
 %description
 Linux Multi-Theme Toggle: high-performance async light/dark theme switching
@@ -94,6 +96,11 @@ install -Dpm0644 dist/tmpfiles.d/lmtt.conf %{buildroot}%{_tmpfilesdir}/lmtt.conf
 %{_tmpfilesdir}/lmtt.conf
 
 %changelog
+* Fri Aug 22 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.3.0-1
+- matugen >= 4.1 is the floor: the pre-4.1 --prefer fallback and the
+  older JSON shapes are gone. The one-time lmtt-slint.json migration
+  from the matugen-era token path is removed (alpha cleanup).
+
 * Fri Aug 22 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.2.9-1
 - Review fixes: refuse to publish into a users/<name> dir we do not own
   outright (sticky world-writable parent lets another user pre-create or

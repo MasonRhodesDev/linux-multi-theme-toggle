@@ -7,7 +7,7 @@
 # `makepkg --printsrcinfo > .SRCINFO` on every change).
 
 pkgname=lmtt
-pkgver=0.2.9
+pkgver=0.3.0
 pkgrel=1
 pkgdesc="Linux Multi-Theme Toggle - fast async theme switching for Hyprland/Wayland"
 arch=('x86_64')
@@ -17,7 +17,7 @@ depends=('gcc-libs')
 # git: schema-tui is a git dependency and .cargo/config.toml sets
 # git-fetch-with-cli, so cargo fetch shells out to the git binary.
 makedepends=('cargo' 'git')
-optdepends=('matugen: Material You color generation from wallpapers')
+optdepends=('matugen>=4.1: Material You color generation from wallpapers')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
 sha256sums=('72b54b3cf6a2c58921bf3b028ea7e53ae607fb6f68c314759bcb6d6b184ff9c7')
 

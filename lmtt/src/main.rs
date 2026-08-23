@@ -311,13 +311,23 @@ fn publish_current(profile: &Profile) -> Result<()> {
         Ok(meta) => {
             use std::os::unix::fs::{MetadataExt, PermissionsExt};
             if meta.file_type().is_symlink() || !meta.is_dir() {
-                anyhow::bail!("{} is not a plain directory; refusing to publish", root.display());
+                anyhow::bail!(
+                    "{} is not a plain directory; refusing to publish",
+                    root.display()
+                );
             }
             if meta.uid() != nix::unistd::geteuid().as_raw() {
-                anyhow::bail!("{} is owned by uid {}, not us; refusing to publish", root.display(), meta.uid());
+                anyhow::bail!(
+                    "{} is owned by uid {}, not us; refusing to publish",
+                    root.display(),
+                    meta.uid()
+                );
             }
             if meta.permissions().mode() & 0o022 != 0 {
-                anyhow::bail!("{} is group/world writable; refusing to publish", root.display());
+                anyhow::bail!(
+                    "{} is group/world writable; refusing to publish",
+                    root.display()
+                );
             }
         }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
