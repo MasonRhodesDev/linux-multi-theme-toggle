@@ -5,8 +5,8 @@ use crate::{Error, Result};
 pub const SYSTEM_ROOT: &str = "/etc/lmtt";
 pub const PACKAGED_ROOT: &str = "/usr/share/lmtt";
 
-pub fn user_dirs() -> Result<hypr_paths::ConfigDirs> {
-    hypr_paths::ConfigDirs::from_env().map_err(|e| Error::Config(e.to_string()))
+pub fn user_dirs() -> Result<xdg_paths::ConfigDirs> {
+    xdg_paths::ConfigDirs::from_env().map_err(|e| Error::Config(e.to_string()))
 }
 
 pub fn user_config_dir() -> Result<PathBuf> {
@@ -18,7 +18,7 @@ pub fn user_data_dir() -> Result<PathBuf> {
 }
 
 pub fn user_cache_dir() -> Result<PathBuf> {
-    hypr_paths::cache_dir("lmtt").map_err(|e| Error::Config(e.to_string()))
+    xdg_paths::cache_dir("lmtt").map_err(|e| Error::Config(e.to_string()))
 }
 
 /// User, then system, then packaged. First filename wins at the caller.

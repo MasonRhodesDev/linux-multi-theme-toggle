@@ -8,7 +8,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 authors = ["Mason"]
 license = "MIT"
@@ -52,7 +52,7 @@ inventory = "0.3"
 handlebars = "5.1"
 tempfile = "3.10"
 appearance-profiles = { git = "https://github.com/MasonRhodesDev/appearance-profiles.git", rev = "bfd6f0d66dac7a31c4f2be042466f9222a3cb165", features = ["builder"] }
-hypr-paths = "0.1.0"
+xdg-paths = "0.2.0"
 monitor-profiles = { git = "https://github.com/MasonRhodesDev/monitor-profiles", rev = "64d5d1ed079582a2014ebf23c403a3ca03ee9c64" }
 
 # TUI framework

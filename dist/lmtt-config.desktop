@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Themes
+GenericName=Theme settings
+Comment=Wallpaper, Material You palette, and per-app theme modules (lmtt)
+Exec=lmtt-config
+TryExec=lmtt-config
+Icon=preferences-desktop-theme
+Terminal=true
+Categories=Settings;DesktopSettings;
+Keywords=theme;wallpaper;dark;light;colors;lmtt;
+X-Dials-Section=Appearance

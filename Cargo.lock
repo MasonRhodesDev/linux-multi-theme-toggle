@@ -756,12 +756,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hypr-paths"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2b57d35d5a9d1fe4892d499fca8fb64f331cf0a2618ca38b1fc32fdfef9f6ed"
-
-[[package]]
 name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -880,7 +874,7 @@ checksum = "df1d3c3b53da64cf5760482273a98e575c651a67eec7f77df96b5b642de8f039"
 
 [[package]]
 name = "lmtt"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "appearance-profiles",
@@ -888,7 +882,6 @@ dependencies = [
  "clap",
  "crossterm",
  "dirs",
- "hypr-paths",
  "lmtt-config-tui",
  "lmtt-core",
  "lmtt-modules",
@@ -904,12 +897,13 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "which",
+ "xdg-paths",
  "zbus",
 ]
 
 [[package]]
 name = "lmtt-config-tui"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "dirs",
@@ -920,12 +914,11 @@ dependencies = [
 
 [[package]]
 name = "lmtt-core"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "appearance-profiles",
  "dirs",
- "hypr-paths",
  "palette",
  "serde",
  "serde_json",
@@ -934,11 +927,12 @@ dependencies = [
  "tokio",
  "toml 0.8.23",
  "tracing",
+ "xdg-paths",
 ]
 
 [[package]]
 name = "lmtt-modules"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -959,7 +953,7 @@ dependencies = [
 
 [[package]]
 name = "lmtt-platforms"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2377,6 +2371,12 @@ dependencies = [
  "libc",
  "windows-sys 0.59.0",
 ]
+
+[[package]]
+name = "xdg-paths"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86bfd0671d6ceb9f3d5049ceaa7ec29b00d36cf26aceae18e4c9f553d7da780a"
 
 [[package]]
 name = "zbus"

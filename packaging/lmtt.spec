@@ -7,7 +7,7 @@
 %bcond_without check
 
 Name:           lmtt
-Version:        0.3.0
+Version:        0.3.1
 Release:        1%{?dist}
 Summary:        Fast async theme switching for Hyprland/Wayland desktops
 License:        MIT
@@ -20,6 +20,7 @@ URL:            https://github.com/MasonRhodesDev/linux-multi-theme-toggle
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 Source1:        %{name}-%{version}-vendor.tar.xz
 
+BuildRequires:  desktop-file-utils
 BuildRequires:  cargo-rpm-macros >= 24
 BuildRequires:  systemd-rpm-macros
 # matugen (wallpaper-based Material You palettes) is optional at runtime and
@@ -78,6 +79,7 @@ install -Dpm0644 examples/README-modules.md examples/colors-dark.json \
 install -Dpm0644 examples/modules/*.toml -t %{buildroot}%{_datadir}/lmtt/examples/modules
 install -Dpm0755 examples/scripts/*.sh -t %{buildroot}%{_datadir}/lmtt/examples/scripts
 install -Dpm0644 dist/tmpfiles.d/lmtt.conf %{buildroot}%{_tmpfilesdir}/lmtt.conf
+desktop-file-install --dir=%{buildroot}%{_datadir}/applications dist/lmtt-config.desktop
 
 %if %{with check}
 %check
@@ -94,8 +96,12 @@ install -Dpm0644 dist/tmpfiles.d/lmtt.conf %{buildroot}%{_tmpfilesdir}/lmtt.conf
 %{_bindir}/lmtt-config
 %{_datadir}/lmtt/
 %{_tmpfilesdir}/lmtt.conf
+%{_datadir}/applications/lmtt-config.desktop
 
 %changelog
+* Sat Aug 22 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.3.1-1
+- Depend on xdg-paths 0.2.0 (renamed crate); ship lmtt-config.desktop (Settings entry, X-Dials-Section=Appearance).
+
 * Fri Aug 22 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.3.0-1
 - matugen >= 4.1 is the floor: the pre-4.1 --prefer fallback and the
   older JSON shapes are gone. The one-time lmtt-slint.json migration

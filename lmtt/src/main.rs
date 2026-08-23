@@ -480,7 +480,7 @@ fn active_monitors() -> Result<Vec<CacheMonitor>> {
 }
 
 fn configured_monitors() -> Result<Vec<CacheMonitor>> {
-    let profiles_dir = hypr_paths::ConfigDirs::from_env()?.config_dir("hypr/profiles");
+    let profiles_dir = xdg_paths::ConfigDirs::from_env()?.config_dir("hypr/profiles");
     let (profiles, diagnostics) = monitor_profiles::load_dir(&profiles_dir);
     for diagnostic in diagnostics {
         tracing::warn!("monitor profile: {diagnostic:?}");
