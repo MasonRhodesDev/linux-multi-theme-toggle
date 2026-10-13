@@ -7,7 +7,7 @@
 %bcond_without check
 
 Name:           lmtt
-Version:        0.3.2
+Version:        0.3.3
 Release:        1%{?dist}
 Summary:        Fast async theme switching for Hyprland/Wayland desktops
 License:        MIT
@@ -101,6 +101,10 @@ install -Dpm644 lmtt-config-tui/assets/config-schema.json %{buildroot}%{_datadir
 %{_datadir}/applications/lmtt-config.desktop
 
 %changelog
+* Tue Oct 13 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.3.3-1
+- Ship the lmtt-config settings schema as /usr/share/lmtt/config-schema.json
+  for other settings UIs (dials' Appearance page); the user copy still wins.
+
 * Tue Oct 13 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.3.2-1
 - `lmtt wallpaper unset --output <selector>` removes a per-output override,
   the inverse of `set --output` (dials' Displays inspector uses it).
