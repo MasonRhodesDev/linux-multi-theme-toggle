@@ -117,6 +117,14 @@ enum WallpaperCommand {
         #[arg(long)]
         no_publish: bool,
     },
+    /// Remove the current user's per-output wallpaper override
+    Unset {
+        #[arg(long)]
+        output: String,
+        /// Do not refresh the greeter-readable snapshot
+        #[arg(long)]
+        no_publish: bool,
+    },
     /// Resolve the effective wallpaper for an output
     Resolve {
         #[arg(long, default_value = "default")]
@@ -246,6 +254,21 @@ fn cmd_wallpaper(command: WallpaperCommand) -> Result<()> {
             println!("Updated {}", profile_path.display());
             if !no_publish {
                 publish_current(&profile)?;
+            }
+        }
+        WallpaperCommand::Unset { output, no_publish } => {
+            let profile_path = appearance_profiles::user_profile_path()
+                .ok_or_else(|| anyhow::anyhow!("cannot determine the user config directory"))?;
+            let mut profile = Profile::load(&profile_path)?.unwrap_or_default();
+            if profile.output.remove(&output).is_none() {
+                // Idempotent: nothing to write or republish.
+                println!("No wallpaper override for {output}");
+            } else {
+                write_profile(&profile_path, &profile)?;
+                println!("Removed the wallpaper override for {output}");
+                if !no_publish {
+                    publish_current(&profile)?;
+                }
             }
         }
         WallpaperCommand::Resolve {
