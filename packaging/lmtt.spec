@@ -7,7 +7,7 @@
 %bcond_without check
 
 Name:           lmtt
-Version:        0.3.1
+Version:        0.3.2
 Release:        1%{?dist}
 Summary:        Fast async theme switching for Hyprland/Wayland desktops
 License:        MIT
@@ -99,6 +99,12 @@ desktop-file-install --dir=%{buildroot}%{_datadir}/applications dist/lmtt-config
 %{_datadir}/applications/lmtt-config.desktop
 
 %changelog
+* Tue Oct 13 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.3.2-1
+- `lmtt wallpaper unset --output <selector>` removes a per-output override,
+  the inverse of `set --output` (dials' Displays inspector uses it).
+- clippy on rustc 1.99: the script runner's late-initialised temp file and
+  async_trait's must_use on ThemeModule; main's CI is green again.
+
 * Sat Aug 22 2026 Mason Rhodes <mrhodesdev@gmail.com> - 0.3.1-1
 - Depend on xdg-paths 0.2.0 (renamed crate); ship lmtt-config.desktop (Settings entry, X-Dials-Section=Appearance).
 
