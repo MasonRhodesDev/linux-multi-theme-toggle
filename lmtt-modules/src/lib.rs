@@ -163,6 +163,9 @@ pub struct ConfigFileInfo {
 }
 
 /// Standard trait that all theme modules must implement
+// async_trait's expansion puts a bare `#[must_use]` on every async method,
+// which clippy (1.99+) flags as `double_must_use`; it is the macro's doing.
+#[allow(clippy::double_must_use)]
 #[async_trait]
 pub trait ThemeModule: Send + Sync {
     /// Module name (e.g., "Waybar", "Hyprland")
