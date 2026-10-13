@@ -80,6 +80,8 @@ install -Dpm0644 examples/modules/*.toml -t %{buildroot}%{_datadir}/lmtt/example
 install -Dpm0755 examples/scripts/*.sh -t %{buildroot}%{_datadir}/lmtt/examples/scripts
 install -Dpm0644 dist/tmpfiles.d/lmtt.conf %{buildroot}%{_tmpfilesdir}/lmtt.conf
 desktop-file-install --dir=%{buildroot}%{_datadir}/applications dist/lmtt-config.desktop
+# The settings schema lmtt-config renders, for other settings UIs (dials).
+install -Dpm644 lmtt-config-tui/assets/config-schema.json %{buildroot}%{_datadir}/lmtt/config-schema.json
 
 %if %{with check}
 %check

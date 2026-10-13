@@ -59,4 +59,6 @@ package() {
   install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
   install -Dm644 dist/tmpfiles.d/lmtt.conf "$pkgdir/usr/lib/tmpfiles.d/lmtt.conf"
   install -Dm644 dist/lmtt-config.desktop "$pkgdir/usr/share/applications/lmtt-config.desktop"
+  # The settings schema lmtt-config renders, for other settings UIs (dials).
+  install -Dm644 lmtt-config-tui/assets/config-schema.json "$pkgdir/usr/share/lmtt/config-schema.json"
 }
