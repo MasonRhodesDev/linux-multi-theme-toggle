@@ -390,15 +390,13 @@ impl CustomModule {
         cmd.arg(&mode).kill_on_drop(true);
 
         // Keep any temp file alive until the script has finished
-        let _colors_file: Option<tempfile::NamedTempFile>;
-
-        if script.pass_as_env {
+        let _colors_file: Option<tempfile::NamedTempFile> = if script.pass_as_env {
             for (key, value) in &scheme.colors {
                 let env_key = format!("LMTT_{}", key.to_uppercase());
                 cmd.env(env_key, value);
             }
             cmd.env("LMTT_MODE", &mode);
-            _colors_file = None;
+            None
         } else {
             let colors_json = serde_json::to_string(&scheme.colors)
                 .map_err(|e| lmtt_core::Error::Module(format!("JSON error: {}", e)))?;
@@ -412,8 +410,8 @@ impl CustomModule {
                 .map_err(|e| lmtt_core::Error::Module(format!("Temp file error: {}", e)))?;
             tokio::fs::write(file.path(), colors_json).await?;
             cmd.arg(file.path());
-            _colors_file = Some(file);
-        }
+            Some(file)
+        };
 
         let output = tokio::time::timeout(clamp_timeout(script.timeout), cmd.output())
             .await
