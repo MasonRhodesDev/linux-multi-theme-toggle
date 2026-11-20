@@ -17,7 +17,7 @@ description = "Linux Multi-Theme Toggle - Fast async theme switching for Hyprlan
 
 [workspace.dependencies]
 # Core dependencies
-tokio = { version = "1.40", features = ["full"] }
+tokio = { version = "1.54", features = ["full"] }
 async-trait = "0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["preserve_order"] }
@@ -29,7 +29,7 @@ clap = { version = "4.5", features = ["derive"] }
 toml = "0.8"
 
 # D-Bus for XDG portal and notifications
-zbus = { version = "4.4", default-features = false, features = ["tokio"] }
+zbus = { version = "6.4", default-features = false, features = ["tokio"] }
 
 # File system and utilities
 dirs = "5.0"
@@ -43,7 +43,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 palette = "0.7"
 
 # Process management
-nix = { version = "0.29", features = ["signal", "process"] }
+nix = { version = "0.29", features = ["signal", "process", "user"] }
 
 # Auto-discovery for modules
 inventory = "0.3"
