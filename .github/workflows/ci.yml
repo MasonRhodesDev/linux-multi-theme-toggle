@@ -13,4 +13,4 @@ jobs:
   ci:
     # Pure-Rust workspace (zbus is a native-Rust D-Bus implementation) — no
     # extra pacman-deps needed beyond the workflow's base toolchain.
-    uses: MasonRhodesDev/packaging-workflows/.github/workflows/rust-ci.yml@v1
+    uses: MasonRhodesDev/packaging-workflows/.github/workflows/rust-ci.yml@3d0c5630674f086918226d0140c51b97887c799f # v1
