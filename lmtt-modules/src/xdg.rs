@@ -147,7 +147,7 @@ impl ThemeModule for XdgModule {
 async fn portal_read_one(
     conn: &zbus::Connection,
     key: &str,
-) -> std::result::Result<zbus::zvariant::OwnedValue, String> {
+) -> std::result::Result<zbus::OwnedVariant, String> {
     let reply = conn
         .call_method(
             Some("org.freedesktop.portal.Desktop"),
@@ -161,6 +161,42 @@ async fn portal_read_one(
     reply.body().deserialize().map_err(|e| e.to_string())
 }
 
-fn portal_u32(value: zbus::zvariant::OwnedValue) -> Option<u32> {
-    zbus::zvariant::Value::from(value).downcast().ok()
+fn portal_u32(value: zbus::OwnedVariant) -> Option<u32> {
+    zbus::Variant::from(value).downcast().ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::portal_u32;
+
+    // Decode a reply body the way portal_read_one does: ReadOne answers with
+    // a single `v`, and Read (the older call) wraps that in a second `v`.
+    fn reply_value<B>(body: &B) -> zbus::OwnedVariant
+    where
+        B: serde::Serialize + zbus::DynamicType,
+    {
+        let msg = zbus::Message::method_call("/org/freedesktop/portal/desktop", "ReadOne")
+            .build(body)
+            .unwrap();
+        msg.body().deserialize().unwrap()
+    }
+
+    #[test]
+    fn color_scheme_reply_decodes_to_u32() {
+        assert_eq!(portal_u32(reply_value(&zbus::Variant::from(1u32))), Some(1));
+        assert_eq!(portal_u32(reply_value(&zbus::Variant::from(2u32))), Some(2));
+    }
+
+    #[test]
+    fn doubly_wrapped_reply_decodes_to_u32() {
+        let inner = zbus::Variant::from(1u32);
+        let outer = zbus::Variant::new(inner);
+        assert_eq!(portal_u32(reply_value(&outer)), Some(1));
+    }
+
+    #[test]
+    fn non_u32_reply_is_none() {
+        assert_eq!(portal_u32(reply_value(&zbus::Variant::from("dark"))), None);
+        assert_eq!(portal_u32(reply_value(&zbus::Variant::from(1i32))), None);
+    }
 }
